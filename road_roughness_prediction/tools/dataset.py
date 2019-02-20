@@ -65,6 +65,12 @@ class Rescale:
         return image_
 
 
+IMAGENET_PARAMS = dict(
+    mean=[0.485, 0.456, 0.406],
+    std=[0.229, 0.224, 0.225],
+)
+
+
 def create_surface_category_dataset(
         root: Path,
         categories: List[str],
@@ -91,10 +97,34 @@ def create_surface_category_dataset(
         Rescale(512),
         transforms.RandomCrop(256),
         transforms.ToTensor(),
-        transforms.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225],
-        ),
+        transforms.Normalize(**IMAGENET_PARAMS),
+    ])
+
+    return SurfaceCategoryDataset(paths_list, labels_list, categories, transform)
+
+
+def create_surface_category_test_dataset(
+        root: Path,
+        categories: List[str],
+        output_size=256,
+):
+    def _get_paths(category):
+        paths = []
+        for path in (root / category).glob('*jpg'):
+            paths.append(path)
+        return paths
+
+    paths_list, labels_list = [], []
+    for i, category in enumerate(categories):
+        img_paths = _get_paths(category)
+        paths_list.append(img_paths)
+        labels_list.append([i for _ in img_paths])
+
+    transform = transforms.Compose([
+        Rescale(output_size),
+        transforms.CenterCrop(256),
+        transforms.ToTensor(),
+        transforms.Normalize(**IMAGENET_PARAMS),
     ])
 
     return SurfaceCategoryDataset(paths_list, labels_list, categories, transform)

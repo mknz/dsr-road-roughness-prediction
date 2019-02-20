@@ -38,7 +38,7 @@ def preprocess(df: pd.DataFrame, data_range=(-3.0, 3.0)):
     df_ = df.copy()
     minmax_scaler = MinMaxScaler(data_range)
     standard_scaler = StandardScaler()
-    columns = ['X', 'Y', 'Z']
+    columns = ['X', 'Y', 'Z', 'R']
     df_[columns] = minmax_scaler.fit_transform(df_[columns])
     df_[columns] = standard_scaler.fit_transform(df_[columns])
     return df_

@@ -1,16 +1,66 @@
 import time
 from pathlib import Path
 
+import numpy as np
+from tqdm import tqdm
+
 import torch
 import torch.nn as nn
-from torch.utils.data.sampler import SubsetRandomSampler
 from torch.utils.data import DataLoader
-import numpy as np
-
-from tqdm import tqdm
+from torch.utils.data.sampler import WeightedRandomSampler
 
 from road_roughness_prediction.tools.dataset import create_surface_category_dataset
 import road_roughness_prediction.models as models
+
+
+def _get_weights(dataset, validation_split, is_class_balanced=False):
+    '''Create weights for sampler, optionally class-balanced'''
+
+    # Class distribution dict
+    dist_dict = {}
+    for i, _, _, dist in dataset.distributions:
+        dist_dict[i] = dist
+
+    # Init weights with zero
+    weights_train = [0. for _ in range(len(dataset))]
+    weights_validation = [0. for _ in range(len(dataset))]
+    for i, (label, path) in enumerate(zip(dataset.labels, dataset.paths)):
+        # No class examples
+        if dist_dict[label] == 0.:
+            continue
+
+        if is_class_balanced:
+            weight = 1. / dist_dict[label]
+        else:
+            weight = 1.
+
+        if np.random.random() > validation_split:
+            weights_train[i] = weight
+        else:
+            weights_validation[i] = weight
+
+    return weights_train, weights_validation
+
+
+def create_train_validation_split_loader(
+        dataset,
+        batch_size,
+        validation_split=0.2,
+        is_class_balanced=False,
+):
+    n_data = len(dataset)
+    weights_train, weights_validation = _get_weights(
+        dataset,
+        validation_split,
+        is_class_balanced=is_class_balanced,
+    )
+
+    train_sampler = WeightedRandomSampler(weights_train, num_samples=n_data - 1)
+    validation_sampler = WeightedRandomSampler(weights_validation, num_samples=n_data - 1)
+
+    train_loader = DataLoader(dataset, batch_size=batch_size, sampler=train_sampler)
+    validation_loader = DataLoader(dataset, batch_size=batch_size, sampler=validation_sampler)
+    return train_loader, validation_loader
 
 
 def train(
@@ -22,27 +72,19 @@ def train(
         debug=False,
         cpu=False,
         save_dir=None,
+        is_class_balanced=False,
+        seed=1,
 ):
-    seed = 1
+    seed = seed
     torch.manual_seed(seed)
     np.random.seed(seed)
 
-    n_data = len(dataset)
-    n_validation = int(n_data * validation_split)
-    indices = np.random.permutation(n_data)
-
-    if debug:
-        train_ind, validation_ind = indices[:50], indices[-10:]
-    else:
-        train_ind, validation_ind = indices[n_validation:], indices[:n_validation]
-
-    print(f'total: {n_data} train: {len(train_ind)} validation: {len(validation_ind)} class: {len(dataset.categories)}')
-
-    train_sampler = SubsetRandomSampler(train_ind)
-    validation_sampler = SubsetRandomSampler(validation_ind)
-
-    train_loader = DataLoader(dataset, batch_size=batch_size, sampler=train_sampler)
-    validation_loader = DataLoader(dataset, batch_size=batch_size, sampler=validation_sampler)
+    train_loader, validation_loader = create_train_validation_split_loader(
+        dataset,
+        batch_size,
+        validation_split,
+        is_class_balanced=is_class_balanced,
+    )
 
     if cpu:
         device = 'cpu'
@@ -65,6 +107,7 @@ def train(
         train_loss = 0.
         net.train()
         for X, labels in tqdm(train_loader):
+            print(np.unique(labels.numpy(), return_counts=True))
             X.to(device)
             labels.to(device)
 
@@ -103,6 +146,7 @@ def main():
     parser.add_argument('--categories', nargs='+', required=True)
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--cpu', action='store_true')
+    parser.add_argument('--class-balanced', action='store_true')
     parser.add_argument('--epochs', type=int, default=10)
 
     available_networks = ['tiny_cnn', 'resnet18']
@@ -110,6 +154,7 @@ def main():
 
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--validation-split', type=float, default=0.2)
+    parser.add_argument('--seed', type=int, default=1)
 
     args = parser.parse_args()
     data_dir = Path(args.data_dir)
@@ -135,6 +180,8 @@ def main():
         debug=args.debug,
         cpu=args.cpu,
         save_dir=save_dir,
+        seed=args.seed,
+        is_class_balanced=args.class_balanced,
     )
 
 

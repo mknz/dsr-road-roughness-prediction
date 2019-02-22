@@ -107,7 +107,6 @@ def train(
         train_loss = 0.
         net.train()
         for X, labels in tqdm(train_loader):
-            print(np.unique(labels.numpy(), return_counts=True))
             X.to(device)
             labels.to(device)
 

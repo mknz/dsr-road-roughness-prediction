@@ -33,6 +33,20 @@ class SurfaceCategoryDataset(Dataset):
         img_ = self._transform(img)
         return img_, label
 
+    @property
+    def distributions(self):
+        '''Returns class distribution'''
+        dist = []
+        for i, category in enumerate(self.categories):
+            n_images = sum([1 if x == i else 0 for x in self.labels])
+            dist.append((i, category, n_images, n_images / len(self)))
+        return dist
+
+    def show_dist(self):
+        '''Show class distribution'''
+        for i, category, n_images, dist in self.distributions:
+            print(f'{i:02d} {n_images:07d} {dist:.4f} {category}')
+
 
 class Rescale:
     """Rescale the image in a sample to a given size.
@@ -75,6 +89,7 @@ def create_surface_category_dataset(
         root: Path,
         categories: List[str],
         target_dir_name: str,
+        output_size: int = 256,
 ):
     def _get_paths(category):
         paths = []
@@ -95,7 +110,7 @@ def create_surface_category_dataset(
 
     transform = transforms.Compose([
         Rescale(512),
-        transforms.RandomCrop(256),
+        transforms.RandomCrop(output_size),
         transforms.ToTensor(),
         transforms.Normalize(**IMAGENET_PARAMS),
     ])
@@ -121,8 +136,8 @@ def create_surface_category_test_dataset(
         labels_list.append([i for _ in img_paths])
 
     transform = transforms.Compose([
-        Rescale(output_size),
-        transforms.CenterCrop(256),
+        Rescale(512),
+        transforms.CenterCrop(output_size),
         transforms.ToTensor(),
         transforms.Normalize(**IMAGENET_PARAMS),
     ])

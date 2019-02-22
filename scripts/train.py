@@ -123,6 +123,9 @@ def main():
 
     dataset = create_surface_category_dataset(data_dir, categories, target_dir_name)
 
+    # Show class distribution
+    dataset.show_dist()
+
     train(
         dataset,
         epochs=args.epochs,

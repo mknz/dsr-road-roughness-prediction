@@ -63,7 +63,11 @@ class Rescale:
         self.output_size = output_size
 
     def __call__(self, image):
+
         w, h = image.size
+        if min(w, h) > self.output_size:
+            return image
+
         if isinstance(self.output_size, int):
             if h > w:
                 new_h, new_w = self.output_size * h / w, self.output_size

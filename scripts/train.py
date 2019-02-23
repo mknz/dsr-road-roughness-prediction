@@ -129,7 +129,7 @@ def train(
             train_loss += loss.item()
 
         net.eval()
-        test(net, validation_loader, len(categories))
+        test(net, validation_loader, n_class)
         print(f'train loss: {train_loss / batch_size:.4f}')
         if save_dir:
             torch.save(net.state_dict(), str(save_dir / f'{model_name}_dict_epoch_{i + 1:03d}.pth'))

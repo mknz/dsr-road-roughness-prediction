@@ -23,7 +23,7 @@ def forward(weight_path: Path, data_dir, categories: List[str], model_name: str)
         output_size=img_size,
     )
     dataset.show_dist()
-    loader = DataLoader(dataset)
+    loader = DataLoader(dataset, batch_size=100)
 
     if model_name == 'tiny_cnn':
         net = models.TinyCNN(n_class)
@@ -36,14 +36,16 @@ def forward(weight_path: Path, data_dir, categories: List[str], model_name: str)
 
 
 def test(net, loader: DataLoader, n_class):
+    net.eval()
     class_count = [0 for _ in range(n_class)]
     class_correct = [0 for _ in range(n_class)]
-    for X, labels in loader:
-        outputs = net.forward(X)
-        _, predicted = torch.max(outputs, 1)
-        for pred, label in zip(predicted.tolist(), labels.tolist()):
-            class_count[int(label)] += 1
-            class_correct[int(label)] += int(pred == label)
+    with torch.no_grad():
+        for X, labels in loader:
+            outputs = net.forward(X)
+            _, predicted = torch.max(outputs, 1)
+            for pred, label in zip(predicted.tolist(), labels.tolist()):
+                class_count[int(label)] += 1
+                class_correct[int(label)] += int(pred == label)
 
     accuracy = sum(class_correct) / sum(class_count)
     class_accuracy = [

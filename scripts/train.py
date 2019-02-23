@@ -1,3 +1,4 @@
+import sys
 import time
 from pathlib import Path
 
@@ -109,6 +110,7 @@ def train(
 
     for i in range(epochs):
         print(f'epoch: {i + 1:03d}')
+        sys.stdout.flush()
         train_loss = 0.
         net.train()
         for X, labels in tqdm(train_loader):
@@ -162,7 +164,7 @@ def main():
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--validation-split', type=float, default=0.2)
     parser.add_argument('--seed', type=int, default=1)
-    parser.add_argument('--devide-id', type=int, default=0)
+    parser.add_argument('--device-id', type=int, default=0)
 
     args = parser.parse_args()
     data_dir = Path(args.data_dir)

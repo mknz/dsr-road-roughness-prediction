@@ -74,6 +74,7 @@ def train(
         save_dir=None,
         is_class_balanced=False,
         seed=1,
+        device_id=0,
 ):
     seed = seed
     torch.manual_seed(seed)
@@ -89,7 +90,7 @@ def train(
     if cpu:
         device = 'cpu'
     else:
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        device = torch.device(f'cuda:{device_id}' if torch.cuda.is_available() else "cpu")
         torch.cuda.manual_seed(seed)
 
     if model_name == 'tiny_cnn':
@@ -154,6 +155,7 @@ def main():
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--validation-split', type=float, default=0.2)
     parser.add_argument('--seed', type=int, default=1)
+    parser.add_argument('--devide-id', type=int, default=0)
 
     args = parser.parse_args()
     data_dir = Path(args.data_dir)

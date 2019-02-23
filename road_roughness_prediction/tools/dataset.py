@@ -113,7 +113,7 @@ def create_surface_category_dataset(
         labels_list.append([i for _ in img_paths])
 
     transform = transforms.Compose([
-        Rescale(512),
+        Rescale(output_size),
         transforms.RandomCrop(output_size),
         transforms.ToTensor(),
         transforms.Normalize(**IMAGENET_PARAMS),
@@ -140,7 +140,7 @@ def create_surface_category_test_dataset(
         labels_list.append([i for _ in img_paths])
 
     transform = transforms.Compose([
-        Rescale(512),
+        Rescale(output_size),
         transforms.CenterCrop(output_size),
         transforms.ToTensor(),
         transforms.Normalize(**IMAGENET_PARAMS),

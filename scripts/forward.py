@@ -14,7 +14,7 @@ from road_roughness_prediction.tools.dataset import create_surface_category_test
 np.set_printoptions(precision=4)
 
 
-def forward(weight_path: Path, data_dir, categories: List[str]):
+def forward(weight_path: Path, data_dir, categories: List[str], model_name: str):
     img_size = 256
     n_class = len(categories)
     dataset = create_surface_category_test_dataset(
@@ -25,7 +25,11 @@ def forward(weight_path: Path, data_dir, categories: List[str]):
     dataset.show_dist()
     loader = DataLoader(dataset)
 
-    net = models.Resnet18(n_class)
+    if model_name == 'tiny_cnn':
+        net = models.TinyCNN(n_class)
+    elif model_name == 'resnet18':
+        net = models.Resnet18(n_class)
+
     net.load_state_dict(state_dict=torch.load(weight_path))
 
     test(net, loader, len(categories))
@@ -59,9 +63,10 @@ def main():
     parser.add_argument('--weight-path', required=True)
     parser.add_argument('--image-dir')
     parser.add_argument('--categories', nargs='+')
+    parser.add_argument('--model-name', type=str, default='tiny_cnn')
     args = parser.parse_args()
 
-    forward(Path(args.weight_path), Path(args.image_dir), args.categories)
+    forward(Path(args.weight_path), Path(args.image_dir), args.categories, args.model_name)
 
 
 if __name__ == '__main__':

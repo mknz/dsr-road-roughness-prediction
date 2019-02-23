@@ -5,12 +5,16 @@ import numpy as np
 from tqdm import tqdm
 
 import torch
-import torch.nn as nn
+from torch import nn
+
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import WeightedRandomSampler
 
 from road_roughness_prediction.tools.dataset import create_surface_category_dataset
-import road_roughness_prediction.models as models
+from road_roughness_prediction import models
+
+
+np.set_printoptions(precision=4)
 
 
 def _get_weights(dataset, validation_split, is_class_balanced=False):
@@ -122,19 +126,22 @@ def train(
 
         net.eval()
         validation_accuracy = test(net, validation_loader)
-        print(f'train loss: {train_loss / batch_size:.4f} validation accuracy: {validation_accuracy:.4f}')
+        print(f'train loss: {train_loss / batch_size:.4f}')
         if save_dir:
             torch.save(net.state_dict(), str(save_dir / f'{model_name}_dict_epoch_{i + 1:03d}.pth'))
 
 
-def test(net, loader):
+def test(net, loader: DataLoader):
     total = []
     for X, labels in loader:
         outputs = net.forward(X)
         _, predicted = torch.max(outputs, 1)
         c = (predicted == labels).squeeze()
         total.append(c.numpy())
-    return np.hstack(total).mean()
+    accuracy = np.hstack(total).mean()
+    class_accuracy = np.vstack(total).mean(axis=0)
+    print(f'accuracy: {accuracy}')
+    print(f'class_accuracy: {class_accuracy}')
 
 
 def main():

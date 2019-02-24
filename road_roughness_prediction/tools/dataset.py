@@ -50,19 +50,54 @@ class Rescale:
 
     def __call__(self, image):
         w, h = image.size
-        if isinstance(self.output_size, int):
-            if h > w:
-                new_h, new_w = self.output_size * h / w, self.output_size
+        if min (w, h) < self.output_size:
+            if isinstance(self.output_size, int):            
+                if h > w:
+                    new_h, new_w = self.output_size * h / w, self.output_size
+                else:
+                    new_h, new_w = self.output_size, self.output_size * w / h
             else:
-                new_h, new_w = self.output_size, self.output_size * w / h
-        else:
-            new_w, new_h = self.output_size
+                new_w, new_h = self.output_size
 
-        new_h, new_w = int(new_h), int(new_w)
+            new_h, new_w = int(new_h), int(new_w)
 
-        image_ = transforms.Resize((new_h, new_w))(image)
+            image_ = transforms.Resize((new_h, new_w))(image)
 
-        return image_
+            return image_
+        return image
+    
+class Blurr_and_Noise:
+
+    def __init__(self, std):
+        assert isinstance(std, (int, tuple))
+        self.std = std
+
+    def __call__(self, image):
+        # Convert PIL image to CV2 image
+        image_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+        
+        #Adding noise
+        gaussian_noise = image_cv.copy()
+        cv2.randn(gaussian_noise, 0, self.std)
+        
+        #Blurring image
+        image_cv = cv2.blur(gaussian_noise+image_cv,( 4,4))
+        
+        #Convert back to PIL image
+        image_cv = cv2.cvtColor(image_cv, cv2.COLOR_BGR2RGB)
+        image_cv = Image.fromarray(image_cv, mode = 'RGB')
+        
+        return image_cv
+    
+class RndCrop:
+
+    def __init__(self ):
+        pass
+
+    def __call__(self, image):
+        crop_size = min(image.size)
+        image = transforms.RandomCrop(crop_size)
+        return image
 
 
 def create_surface_category_dataset(
@@ -88,8 +123,10 @@ def create_surface_category_dataset(
         labels_list.append([i for _ in img_paths])
 
     transform = transforms.Compose([
-        Rescale(512),
-        transforms.RandomCrop(256),
+        
+        Blurr_and_Noise(70),
+        Rescale(256),
+        RndCrop()
         transforms.ToTensor(),
         transforms.Normalize(
             mean=[0.485, 0.456, 0.406],

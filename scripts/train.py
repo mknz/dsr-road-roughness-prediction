@@ -1,16 +1,71 @@
+import sys
 import time
 from pathlib import Path
 
-import torch
-import torch.nn as nn
-from torch.utils.data.sampler import SubsetRandomSampler
-from torch.utils.data import DataLoader
 import numpy as np
-
 from tqdm import tqdm
 
+import torch
+from torch import nn
+
+from torch.utils.data import DataLoader
+from torch.utils.data.sampler import WeightedRandomSampler
+
 from road_roughness_prediction.tools.dataset import create_surface_category_dataset
-import road_roughness_prediction.models as models
+from road_roughness_prediction import models
+
+
+np.set_printoptions(precision=4)
+
+
+def _get_weights(dataset, validation_split, is_class_balanced=False):
+    '''Create weights for sampler, optionally class-balanced'''
+
+    # Class distribution dict
+    dist_dict = {}
+    for i, _, _, dist in dataset.distributions:
+        dist_dict[i] = dist
+
+    # Init weights with zero
+    weights_train = [0. for _ in range(len(dataset))]
+    weights_validation = [0. for _ in range(len(dataset))]
+    for i, (label, path) in enumerate(zip(dataset.labels, dataset.paths)):
+        # No class examples
+        if dist_dict[label] == 0.:
+            continue
+
+        if is_class_balanced:
+            weight = 1. / dist_dict[label]
+        else:
+            weight = 1.
+
+        if np.random.random() > validation_split:
+            weights_train[i] = weight
+        else:
+            weights_validation[i] = weight
+
+    return weights_train, weights_validation
+
+
+def create_train_validation_split_loader(
+        dataset,
+        batch_size,
+        validation_split=0.2,
+        is_class_balanced=False,
+):
+    n_data = len(dataset)
+    weights_train, weights_validation = _get_weights(
+        dataset,
+        validation_split,
+        is_class_balanced=is_class_balanced,
+    )
+
+    train_sampler = WeightedRandomSampler(weights_train, num_samples=n_data - 1)
+    validation_sampler = WeightedRandomSampler(weights_validation, num_samples=n_data - 1)
+
+    train_loader = DataLoader(dataset, batch_size=batch_size, sampler=train_sampler)
+    validation_loader = DataLoader(dataset, batch_size=batch_size, sampler=validation_sampler)
+    return train_loader, validation_loader
 
 
 def train(
@@ -22,38 +77,33 @@ def train(
         debug=False,
         cpu=False,
         save_dir=None,
+        is_class_balanced=False,
+        seed=1,
+        device_id=0,
 ):
-    seed = 1
+    seed = seed
     torch.manual_seed(seed)
     np.random.seed(seed)
 
-    n_data = len(dataset)
-    n_validation = int(n_data * validation_split)
-    indices = np.random.permutation(n_data)
-
-    if debug:
-        train_ind, validation_ind = indices[:50], indices[-10:]
-    else:
-        train_ind, validation_ind = indices[n_validation:], indices[:n_validation]
-
-    print(f'total: {n_data} train: {len(train_ind)} validation: {len(validation_ind)} class: {len(dataset.categories)}')
-
-    train_sampler = SubsetRandomSampler(train_ind)
-    validation_sampler = SubsetRandomSampler(validation_ind)
-
-    train_loader = DataLoader(dataset, batch_size=batch_size, sampler=train_sampler)
-    validation_loader = DataLoader(dataset, batch_size=batch_size, sampler=validation_sampler)
+    train_loader, validation_loader = create_train_validation_split_loader(
+        dataset,
+        batch_size,
+        validation_split,
+        is_class_balanced=is_class_balanced,
+    )
 
     if cpu:
         device = 'cpu'
     else:
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        device = torch.device(f'cuda:{device_id}' if torch.cuda.is_available() else "cpu")
         torch.cuda.manual_seed(seed)
 
+    n_class = len(dataset.categories)
+
     if model_name == 'tiny_cnn':
-        net = models.TinyCNN(n_out=len(dataset.categories))
+        net = models.TinyCNN(n_class)
     elif model_name == 'resnet18':
-        net = models.Resnet18(n_out=len(dataset.categories))
+        net = models.Resnet18(n_class)
     else:
         ValueError(f'Unknown model name {model_name}')
 
@@ -62,6 +112,7 @@ def train(
 
     for i in range(epochs):
         print(f'epoch: {i + 1:03d}')
+        sys.stdout.flush()
         train_loss = 0.
         net.train()
         for X, labels in tqdm(train_loader):
@@ -77,21 +128,35 @@ def train(
 
             train_loss += loss.item()
 
-        net.eval()
-        validation_accuracy = test(net, validation_loader)
-        print(f'train loss: {train_loss / batch_size:.4f} validation accuracy: {validation_accuracy:.4f}')
+        test(net, validation_loader, n_class)
+        print(f'train loss: {train_loss / batch_size:.4f}')
         if save_dir:
             torch.save(net.state_dict(), str(save_dir / f'{model_name}_dict_epoch_{i + 1:03d}.pth'))
 
 
-def test(net, loader):
-    total = []
-    for X, labels in loader:
-        outputs = net.forward(X)
-        _, predicted = torch.max(outputs, 1)
-        c = (predicted == labels).squeeze()
-        total.append(c.numpy())
-    return np.hstack(total).mean()
+def test(net, loader: DataLoader, n_class):
+    net.eval()
+    class_count = [0 for _ in range(n_class)]
+    class_correct = [0 for _ in range(n_class)]
+    with torch.no_grad():
+        for X, labels in loader:
+            outputs = net.forward(X)
+            _, predicted = torch.max(outputs, 1)
+            for pred, label in zip(predicted.tolist(), labels.tolist()):
+                class_count[int(label)] += 1
+                class_correct[int(label)] += int(pred == label)
+
+    accuracy = sum(class_correct) / sum(class_count)
+    class_accuracy = [
+        correct / count if count > 0 else 0.
+        for correct, count
+        in zip(class_correct, class_count)
+    ]
+
+    print(f'total_accuracy: {accuracy}')
+    print(f'class_accuracy: {class_accuracy}')
+    print(f'class_count: {class_count}')
+    print(f'class_correct: {class_correct}')
 
 
 def main():
@@ -103,6 +168,7 @@ def main():
     parser.add_argument('--categories', nargs='+', required=True)
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--cpu', action='store_true')
+    parser.add_argument('--class-balanced', action='store_true')
     parser.add_argument('--epochs', type=int, default=10)
 
     available_networks = ['tiny_cnn', 'resnet18']
@@ -110,6 +176,8 @@ def main():
 
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--validation-split', type=float, default=0.2)
+    parser.add_argument('--seed', type=int, default=1)
+    parser.add_argument('--device-id', type=int, default=0)
 
     args = parser.parse_args()
     data_dir = Path(args.data_dir)
@@ -123,6 +191,9 @@ def main():
 
     dataset = create_surface_category_dataset(data_dir, categories, target_dir_name)
 
+    # Show class distribution
+    dataset.show_dist()
+
     train(
         dataset,
         epochs=args.epochs,
@@ -132,6 +203,8 @@ def main():
         debug=args.debug,
         cpu=args.cpu,
         save_dir=save_dir,
+        seed=args.seed,
+        is_class_balanced=args.class_balanced,
     )
 
 

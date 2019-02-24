@@ -102,3 +102,9 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# Other
+*.pth
+obsolete/
+tmp/
+activate_env_dev.sh

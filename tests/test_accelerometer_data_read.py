@@ -14,7 +14,7 @@ def test_read_data():
     def _plot(df, title):
         fig = plt.figure()
         fig.suptitle(title)
-        for col in ['X', 'Y', 'Z']:
+        for col in ['X', 'Y', 'Z', 'R']:
             plt.plot(df.iloc[plot_range]['time'], df.iloc[plot_range][col], label=col)
         plt.legend()
         plt.show()

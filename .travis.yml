@@ -9,6 +9,7 @@ cache:
     - .pytest_cache
 
 install:
-  - pip3 install -r requirements.txt --progress-bar off
+  - pip install --upgrade pip
+  - pip install -r requirements.txt -q
 script:
   - tests/test_all.sh

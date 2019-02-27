@@ -69,13 +69,13 @@ class Rescale:
         h, w, _ = image.shape
         
         if isinstance(self.output_size, int):  
-            #if min (h, w) < self.output_size:
-            if h > w:
-                new_h, new_w = self.output_size * h / w, self.output_size
+            if min (h, w) < self.output_size:
+                if h > w:
+                    new_h, new_w = self.output_size * h / w, self.output_size
+                else:
+                    new_h, new_w = self.output_size, self.output_size * w / h
             else:
-                new_h, new_w = self.output_size, self.output_size * w / h
-            #else:
-             #   new_h, new_w = h, w
+                new_h, new_w = h, w
         else:
             new_w, new_h = self.output_size
 
@@ -89,13 +89,11 @@ class Rescale:
 class RndCrop:
     """Random crop along smallest axis"""
     
-    def __init__(self ):
-        pass
+    def __init__(self, crop_size):
+        self.crop_size = crop_size
 
     def __call__(self, image):
-        h, w, _ = image.shape
-        crop_size = min(h, w)
-        image = RandomCrop(crop_size, crop_size)(image=image)
+        image = RandomCrop(self.crop_size, self.crop_size)(image=image)
         return image
 
 
@@ -131,12 +129,9 @@ def create_surface_category_dataset(
     transform = Compose([
         IAAAdditiveGaussianNoise (scale=(0.01*255, 0.15*255.)),
         Blur (blur_limit=4),
-        Rescale(256),
-        RndCrop(),
-        ToTensor(normalize= 
-                 {'mean': [0.485, 0.456, 0.406], 
-                  'std':  [0.229, 0.224, 0.225]}
-                 ),
+        Rescale(output_size),
+        RndCrop(output_size),
+        ToTensor(normalize = IMAGENET_PARAMS),
         ])
 
 
@@ -163,12 +158,9 @@ def create_surface_category_test_dataset(
     transform = Compose([
         IAAAdditiveGaussianNoise (scale=(0.01*255, 0.15*255.)),
         Blur (blur_limit=4),
-        Rescale(256),
-        RndCrop(),
-        ToTensor(normalize= 
-                 {'mean': [0.485, 0.456, 0.406], 
-                  'std':  [0.229, 0.224, 0.225]}
-                 ),
+        Rescale(output_size),
+        RndCrop(output_size),
+        ToTensor(normalize = IMAGENET_PARAMS),
         ])
 
     return SurfaceCategoryDataset(paths_list, labels_list, categories, transform)

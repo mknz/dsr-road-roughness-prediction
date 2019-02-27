@@ -1,6 +1,6 @@
 # dsr-road-roughness-prediction
 
-[travis]: https://travis-ci.com/mknz/dsr-road-roughness-prediction.svg?branch=master
+[![Build Status](https://travis-ci.com/mknz/dsr-road-roughness-prediction.svg?branch=master)](https://travis-ci.com/mknz/dsr-road-roughness-prediction)
 
 ## Run all tests
 

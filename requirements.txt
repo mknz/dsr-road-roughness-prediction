@@ -1,1 +1,12 @@
 pytest
+Pillow
+albumentations
+numpy
+matplotlib
+opencv-python
+toml
+tqdm
+torch
+torchvision
+scikit-learn
+pandas

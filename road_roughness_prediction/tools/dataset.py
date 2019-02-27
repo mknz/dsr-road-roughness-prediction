@@ -3,9 +3,11 @@ from pathlib import Path
 from typing import List
 
 from torch.utils.data import Dataset
-from torchvision import transforms
 
 from PIL import Image
+from albumentations import (Blur, IAAAdditiveGaussianNoise, Resize, RandomCrop, Compose)
+from albumentations.pytorch import ToTensor
+import numpy as np
 
 
 class SurfaceCategoryDataset(Dataset):
@@ -30,7 +32,15 @@ class SurfaceCategoryDataset(Dataset):
         path = self.paths[idx]
         label = self.labels[idx]
         img = Image.open(path)
-        img_ = self._transform(img)
+        
+        # Convert PIL image to numpy array
+        image_np = np.array(img)
+        
+        # Apply transformations
+        augmented = self._transform(image=image_np)
+        
+        img_ = augmented['image']
+        
         return img_, label
 
     @property
@@ -49,38 +59,42 @@ class SurfaceCategoryDataset(Dataset):
 
 
 class Rescale:
-    """Rescale the image in a sample to a given size.
-
-    Args:
-        output_size (tuple or int): Desired output size. If tuple, output is
-            matched to output_size. If int, smaller of image edges is matched
-            to output_size keeping aspect ratio the same.
-    https://pytorch.org/tutorials/beginner/data_loading_tutorial.html
-    """
+    """Rescale the image in a sample to a given size."""
 
     def __init__(self, output_size):
         assert isinstance(output_size, (int, tuple))
         self.output_size = output_size
 
     def __call__(self, image):
-
-        w, h = image.size
-        if min(w, h) > self.output_size:
-            return image
-
-        if isinstance(self.output_size, int):
-            if h > w:
-                new_h, new_w = self.output_size * h / w, self.output_size
+        h, w, _ = image.shape
+        
+        if isinstance(self.output_size, int):  
+            if min (h, w) < self.output_size:
+                if h > w:
+                    new_h, new_w = self.output_size * h / w, self.output_size
+                else:
+                    new_h, new_w = self.output_size, self.output_size * w / h
             else:
-                new_h, new_w = self.output_size, self.output_size * w / h
+                new_h, new_w = h, w
         else:
             new_w, new_h = self.output_size
 
         new_h, new_w = int(new_h), int(new_w)
 
-        image_ = transforms.Resize((new_h, new_w))(image)
+        image_ = Resize(new_h, new_w)(image=image)
 
         return image_
+
+    
+class RndCrop:
+    """Random crop along smallest axis"""
+    
+    def __init__(self, crop_size):
+        self.crop_size = crop_size
+
+    def __call__(self, image):
+        image = RandomCrop(self.crop_size, self.crop_size)(image=image)
+        return image
 
 
 IMAGENET_PARAMS = dict(
@@ -111,13 +125,15 @@ def create_surface_category_dataset(
         img_paths = _get_paths(category)
         paths_list.append(img_paths)
         labels_list.append([i for _ in img_paths])
-
-    transform = transforms.Compose([
+    
+    transform = Compose([
+        IAAAdditiveGaussianNoise (scale=(0.01*255, 0.15*255.)),
+        Blur (blur_limit=4),
         Rescale(output_size),
-        transforms.RandomCrop(output_size),
-        transforms.ToTensor(),
-        transforms.Normalize(**IMAGENET_PARAMS),
-    ])
+        RndCrop(output_size),
+        ToTensor(normalize = IMAGENET_PARAMS),
+        ])
+
 
     return SurfaceCategoryDataset(paths_list, labels_list, categories, transform)
 
@@ -139,11 +155,12 @@ def create_surface_category_test_dataset(
         paths_list.append(img_paths)
         labels_list.append([i for _ in img_paths])
 
-    transform = transforms.Compose([
+    transform = Compose([
+        IAAAdditiveGaussianNoise (scale=(0.01*255, 0.15*255.)),
+        Blur (blur_limit=4),
         Rescale(output_size),
-        transforms.CenterCrop(output_size),
-        transforms.ToTensor(),
-        transforms.Normalize(**IMAGENET_PARAMS),
-    ])
+        RndCrop(output_size),
+        ToTensor(normalize = IMAGENET_PARAMS),
+        ])
 
     return SurfaceCategoryDataset(paths_list, labels_list, categories, transform)

@@ -1,11 +1,15 @@
+'''Accelerometer data reading test'''
 from pathlib import Path
 
+import pytest
 import matplotlib.pyplot as plt
 
 import road_roughness_prediction.tools.accelerometer as acc
 
 TEST_DATA_PATH = './tests/one_second_flip.txt'
 
+
+@pytest.mark.interactive
 def test_read_data():
     reader = acc.DataReader(Path(TEST_DATA_PATH), acc.preprocess)
 

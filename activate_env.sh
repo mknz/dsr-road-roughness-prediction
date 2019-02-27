@@ -1,3 +1,3 @@
-export PYTHONPATH=$(pwd)
+export PYTHONPATH=$PWD
 export GOOGLE_SHEET_URL=
 export GOOGLE_MAP_API_KEY=

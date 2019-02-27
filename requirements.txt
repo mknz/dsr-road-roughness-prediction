@@ -5,8 +5,8 @@ numpy
 matplotlib
 opencv-python
 toml
-tqdm
-torch
+tqdm==4.19.9
+torch==1.0.1
 torchvision
 scikit-learn
 pandas

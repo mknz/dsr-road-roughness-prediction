@@ -12,4 +12,6 @@ install:
   - pip install --upgrade pip
   - pip install -r requirements.txt -q
 script:
-  - tests/test_all.sh
+  - export PYTHONPATH=$PWD
+  - ./tests/test_train.sh
+  - pytest ./tests

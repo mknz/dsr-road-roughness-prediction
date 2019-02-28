@@ -107,7 +107,7 @@ def train(
     elif model_name == 'resnet18':
         net = models.Resnet18(n_class)
     else:
-        ValueError(f'Unknown model name {model_name}')
+        raise ValueError(f'Unknown model name {model_name}')
 
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(net.parameters())

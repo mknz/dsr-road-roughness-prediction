@@ -1,4 +1,3 @@
-'''Transformations'''
 from albumentations import Resize
 
 
@@ -25,6 +24,4 @@ class Rescale:
 
         new_h, new_w = int(new_h), int(new_w)
 
-        image_ = Resize(new_h, new_w)(image=image)
-
-        return image_
+        return Resize(new_h, new_w)(image=image)

@@ -11,7 +11,9 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import WeightedRandomSampler
 
-from road_roughness_prediction.tools.dataset import create_surface_category_dataset
+from road_roughness_prediction.config import Config
+from road_roughness_prediction.dataset import SurfaceCategoryDatasetFactory
+from road_roughness_prediction.dataset.transformations import TransformFactory
 from road_roughness_prediction import models
 
 
@@ -178,6 +180,7 @@ def main():
     parser.add_argument('--validation-split', type=float, default=0.2)
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--device-id', type=int, default=0)
+    parser.add_argument('--dir-type', choices=['deep', 'shallow'], default='deep')
 
     args = parser.parse_args()
     data_dir = Path(args.data_dir)
@@ -189,7 +192,18 @@ def main():
     if not save_dir.exists():
         save_dir.mkdir(parents=True)
 
-    dataset = create_surface_category_dataset(data_dir, categories, target_dir_name)
+    dir_type = args.dir_type
+
+    config = Config()
+    transform = TransformFactory(config)
+
+    dataset = SurfaceCategoryDatasetFactory(
+        data_dir,
+        categories,
+        target_dir_name,
+        dir_type,
+        transform,
+    )
 
     # Show class distribution
     dataset.show_dist()

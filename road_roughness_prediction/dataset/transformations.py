@@ -2,6 +2,7 @@
 from albumentations import Blur
 from albumentations import Compose
 from albumentations import IAAAdditiveGaussianNoise
+from albumentations import CenterCrop
 from albumentations import RandomCrop
 from albumentations.pytorch import ToTensor
 
@@ -37,8 +38,13 @@ class TransformFactory:
                 RandomCrop(config.OUTPUT_SIZE, config.OUTPUT_SIZE),
             ])
 
-            transform = Transform(image_transform, config)
+        elif config.TRANSFORMATION == 'BASIC_EVAL_TRANSFORM':
+            image_transform = Compose([
+                Rescale(config.OUTPUT_SIZE),
+                CenterCrop(config.OUTPUT_SIZE, config.OUTPUT_SIZE),
+            ])
+
         else:
             NotImplementedError(config.TRANSFORMATION)
 
-        return transform
+        return Transform(image_transform, config)

@@ -7,21 +7,36 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
+from road_roughness_prediction.config import EvalConfig
 from road_roughness_prediction import models
-from road_roughness_prediction.tools.dataset import create_surface_category_test_dataset
+from road_roughness_prediction.dataset import SurfaceCategoryDatasetFactory
+from road_roughness_prediction.dataset.transformations import TransformFactory
 
 
 np.set_printoptions(precision=4)
 
 
-def forward(weight_path: Path, data_dir, categories: List[str], model_name: str):
-    img_size = 256
+def evaluate(
+        weight_path: Path,
+        data_dir,
+        target_dir_name,
+        categories: List[str],
+        model_name: str,
+        dir_type: str,
+):
     n_class = len(categories)
-    dataset = create_surface_category_test_dataset(
+
+    config = EvalConfig()
+    transform = TransformFactory(config)
+
+    dataset = SurfaceCategoryDatasetFactory(
         data_dir,
         categories,
-        output_size=img_size,
+        target_dir_name,
+        dir_type,
+        transform,
     )
+    assert len(dataset), f'No data found in {data_dir}'
     dataset.show_dist()
     loader = DataLoader(dataset, batch_size=100)
 
@@ -64,11 +79,23 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--weight-path', required=True)
     parser.add_argument('--image-dir')
+    parser.add_argument('--target-dir-name')
+    parser.add_argument('--dir-type', choices=['deep', 'shallow'], default='shallow')
     parser.add_argument('--categories', nargs='+')
     parser.add_argument('--model-name', type=str, default='tiny_cnn')
     args = parser.parse_args()
 
-    forward(Path(args.weight_path), Path(args.image_dir), args.categories, args.model_name)
+    data_dir = Path(args.image_dir)
+    assert data_dir.exists(), f'Not found {str(data_dir)}'
+
+    evaluate(
+        weight_path=Path(args.weight_path),
+        data_dir=data_dir,
+        categories=args.categories,
+        model_name=args.model_name,
+        target_dir_name=args.target_dir_name,
+        dir_type=args.dir_type,
+    )
 
 
 if __name__ == '__main__':

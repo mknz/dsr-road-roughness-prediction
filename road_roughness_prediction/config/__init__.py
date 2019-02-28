@@ -1,5 +1,6 @@
 '''Configs'''
 
+
 class Config:
 
     OUTPUT_SIZE = 256
@@ -11,3 +12,8 @@ class Config:
         std=[0.229, 0.224, 0.225],
     )
     NORMALIZE_PARAMS = IMAGENET_PARAMS
+
+
+class EvalConfig(Config):
+
+    TRANSFORMATION = 'BASIC_EVAL_TRANSFORM'

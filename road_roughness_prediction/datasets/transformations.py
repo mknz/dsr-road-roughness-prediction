@@ -30,7 +30,7 @@ class TransformType(Enum):
             type_ = cls.BASIC_TRANSFORM
         elif transform_type_string == 'basic_eval_transform':
             type_ = cls.BASIC_EVAL_TRANSFORM
-        elif transform_type_string == 'exetensive_transform':
+        elif transform_type_string == 'extensive_transform':
             type_ = cls.EXTENSIVE_TRANSFORM
         else:
             raise ValueError(transform_type_string)

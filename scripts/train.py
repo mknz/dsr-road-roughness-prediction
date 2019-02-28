@@ -185,6 +185,8 @@ def main():
     parser.add_argument('--transform', default='basic_transform')
 
     args = parser.parse_args()
+    print(args)
+
     data_dir = Path(args.data_dir)
     categories = args.categories
     target_dir_name = args.target_dir_name

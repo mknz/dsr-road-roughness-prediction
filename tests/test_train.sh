@@ -16,6 +16,7 @@ for MODEL in resnet18 tiny_cnn; do
         --epochs 1\
         --model-name $MODEL\
         --class-balanced\
+        --transform extensive_transform\
         --save-dir $SAVE_DIR
     if [ $? -ne 0 ]; then
         echo "$MODEL training failed"

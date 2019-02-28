@@ -100,6 +100,7 @@ def main():
     parser.add_argument('--model-name', type=str, default='tiny_cnn')
     parser.add_argument('--save-fig-path')
     args = parser.parse_args()
+    print(args)
 
     data_dir = Path(args.image_dir)
     assert data_dir.exists(), f'Not found {str(data_dir)}'

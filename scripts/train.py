@@ -219,6 +219,7 @@ def main():
         save_dir=save_dir,
         seed=args.seed,
         is_class_balanced=args.class_balanced,
+        device_id=args.device_id,
     )
 
 

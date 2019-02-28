@@ -1,3 +1,5 @@
+'''Configs'''
+
 class Config:
 
     OUTPUT_SIZE = 256

@@ -17,6 +17,7 @@ class DataReader:
 
     @staticmethod
     def _read_data(path: Path):
+        '''Read data from csv'''
         with path.open('r') as f:
             # Skip header lines
             for _ in range(3):

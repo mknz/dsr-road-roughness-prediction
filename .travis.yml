@@ -1,0 +1,17 @@
+language: python
+
+python:
+  - '3.6'
+
+cache:
+  pip: true
+  directories:
+    - .pytest_cache
+
+install:
+  - pip install --upgrade pip
+  - pip install -r requirements.txt -q
+script:
+  - export PYTHONPATH=$PWD
+  - ./tests/test_train.sh
+  - pytest tests

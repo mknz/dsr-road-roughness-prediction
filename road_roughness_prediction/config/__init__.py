@@ -2,6 +2,7 @@
 
 
 class Config:
+    '''Config class'''
 
     OUTPUT_SIZE = 256
     TRANSFORMATION = 'BASIC_TRANSFORM'
@@ -15,5 +16,5 @@ class Config:
 
 
 class EvalConfig(Config):
-
+    '''Config for evaluation'''
     TRANSFORMATION = 'BASIC_EVAL_TRANSFORM'

@@ -60,8 +60,9 @@ def _prep_label(y_test, y_pred, class_names):
 
 
 def calc_plot_confusion_matrix(y_test, y_pred, class_names, save_path: Path):
+    '''Calculate and plot confusion matrix'''
 
-    _FIG_SIZE = (12, 10)
+    fig_size = (12, 10)
 
     y_test_, y_pred_, class_names_ = _prep_label(y_test, y_pred, class_names)
 
@@ -70,14 +71,14 @@ def calc_plot_confusion_matrix(y_test, y_pred, class_names, save_path: Path):
     np.set_printoptions(precision=2)
 
     # Plot non-normalized confusion matrix
-    plt.figure(figsize=_FIG_SIZE)
+    plt.figure(figsize=fig_size)
     plot_confusion_matrix(
         cnf_matrix,
         classes=class_names_,
         title='Confusion matrix, without normalization',
     )
 
-    def _save(path, cond:str):
+    def _save(path, cond: str):
         filename = path.stem + cond + path.suffix
         save_path = path.parent / filename
         plt.savefig(save_path)
@@ -86,7 +87,7 @@ def calc_plot_confusion_matrix(y_test, y_pred, class_names, save_path: Path):
         _save(save_path, '_without_norm')
 
     # Plot normalized confusion matrix
-    plt.figure(figsize=_FIG_SIZE)
+    plt.figure(figsize=fig_size)
     plot_confusion_matrix(
         cnf_matrix,
         classes=class_names_,

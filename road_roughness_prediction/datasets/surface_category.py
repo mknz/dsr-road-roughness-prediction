@@ -86,7 +86,7 @@ class SurfaceCategoryDatasetFactory:
                     paths.append(path)
                 return paths
         else:
-            NotImplementedError(dir_type)
+            raise NotImplementedError(dir_type)
 
         paths_list, labels_list = [], []
         for i, category in enumerate(categories):

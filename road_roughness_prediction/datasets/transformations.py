@@ -1,4 +1,7 @@
 '''Transformations'''
+from enum import auto
+from enum import Enum
+
 from albumentations import Blur
 from albumentations import Compose
 from albumentations import IAAAdditiveGaussianNoise
@@ -11,8 +14,28 @@ from albumentations import RandomScale
 from albumentations import Rotate
 from albumentations.pytorch import ToTensor
 
-from ..config import Config
 from .rescale import Rescale
+
+
+class TransformType(Enum):
+    '''Transformation types'''
+
+    BASIC_TRANSFORM = auto()
+    BASIC_EVAL_TRANSFORM = auto()
+    EXTENSIVE_TRANSFORM = auto()
+
+    @classmethod
+    def from_string(cls, transform_type_string):
+        if transform_type_string == 'basic_transform':
+            type_ = cls.BASIC_TRANSFORM
+        elif transform_type_string == 'basic_eval_transform':
+            type_ = cls.BASIC_EVAL_TRANSFORM
+        elif transform_type_string == 'exetensive_transform':
+            type_ = cls.EXTENSIVE_TRANSFORM
+        else:
+            raise ValueError(transform_type_string)
+
+        return type_
 
 
 class Transform:
@@ -33,8 +56,8 @@ class Transform:
 
 class TransformFactory:
 
-    def __new__(cls, config: Config):
-        if config.TRANSFORMATION == 'BASIC_TRANSFORM':
+    def __new__(cls, config):
+        if config.TRANSFORMATION == TransformType.BASIC_TRANSFORM:
 
             image_transform = Compose([
                 IAAAdditiveGaussianNoise(scale=config.GAUSSIAN_NOISE_SCALE),
@@ -43,7 +66,7 @@ class TransformFactory:
                 RandomCrop(config.OUTPUT_SIZE, config.OUTPUT_SIZE),
             ])
 
-        if config.TRANSFORMATION == 'EXTENSIVE_TRANSFORM':
+        elif config.TRANSFORMATION == TransformType.EXTENSIVE_TRANSFORM:
 
             image_transform = Compose([
                 HorizontalFlip(),
@@ -57,13 +80,13 @@ class TransformFactory:
                 RandomCrop(config.OUTPUT_SIZE, config.OUTPUT_SIZE),
             ])
 
-        elif config.TRANSFORMATION == 'BASIC_EVAL_TRANSFORM':
+        elif config.TRANSFORMATION == TransformType.BASIC_EVAL_TRANSFORM:
             image_transform = Compose([
                 Rescale(config.OUTPUT_SIZE),
                 CenterCrop(config.OUTPUT_SIZE, config.OUTPUT_SIZE),
             ])
 
         else:
-            NotImplementedError(config.TRANSFORMATION)
+            raise NotImplementedError(config.TRANSFORMATION)
 
         return Transform(image_transform, config)

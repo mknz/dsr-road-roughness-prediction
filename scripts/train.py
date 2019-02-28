@@ -14,6 +14,7 @@ from torch.utils.data.sampler import WeightedRandomSampler
 from road_roughness_prediction.config import Config
 from road_roughness_prediction.datasets import SurfaceCategoryDatasetFactory
 from road_roughness_prediction.datasets.transformations import TransformFactory
+from road_roughness_prediction.datasets.transformations import TransformType
 from road_roughness_prediction import models
 
 
@@ -181,6 +182,7 @@ def main():
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--device-id', type=int, default=0)
     parser.add_argument('--dir-type', choices=['deep', 'shallow'], default='deep')
+    parser.add_argument('--transform', default='basic_transform')
 
     args = parser.parse_args()
     data_dir = Path(args.data_dir)
@@ -194,7 +196,13 @@ def main():
 
     dir_type = args.dir_type
 
+    config_dict = dict(
+        TRANSFORMATION=TransformType.from_string(args.transform),
+    )
+
     config = Config()
+    config.from_dict(config_dict)
+
     transform = TransformFactory(config)
 
     dataset = SurfaceCategoryDatasetFactory(

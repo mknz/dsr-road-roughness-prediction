@@ -7,7 +7,8 @@ import tempfile
 import pytest
 import torch
 
-from road_roughness_prediction.config import EvalConfig
+from road_roughness_prediction.config import Config
+from road_roughness_prediction.datasets.transformations import TransformType
 from road_roughness_prediction import models
 
 
@@ -15,7 +16,9 @@ class TestEvaluation:
 
     categories = ['asphalt', 'grass']
     n_class = len(categories)
-    config = EvalConfig()
+
+    config = Config()
+    config.from_dict(dict(TRANSFORMATION=TransformType.BASIC_EVAL_TRANSFORM))
 
     workdir = Path(tempfile.mkdtemp())
 

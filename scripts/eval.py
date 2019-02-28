@@ -8,10 +8,11 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from road_roughness_prediction.config import EvalConfig
+from road_roughness_prediction.config import Config
 from road_roughness_prediction import models
 from road_roughness_prediction.datasets import SurfaceCategoryDatasetFactory
 from road_roughness_prediction.datasets.transformations import TransformFactory
+from road_roughness_prediction.datasets.transformations import TransformType
 from road_roughness_prediction.tools import calc_plot_confusion_matrix
 
 
@@ -31,7 +32,8 @@ class Evaluator:
         self.categories = categories
         self.n_class = len(categories)
 
-        self.config = EvalConfig()
+        self.config = Config()
+        self.config.from_dict(dict(TRANSFORMATION=TransformType.BASIC_EVAL_TRANSFORM))
         transform = TransformFactory(self.config)
 
         dataset = SurfaceCategoryDatasetFactory(

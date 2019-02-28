@@ -3,7 +3,12 @@ from albumentations import Blur
 from albumentations import Compose
 from albumentations import IAAAdditiveGaussianNoise
 from albumentations import CenterCrop
+from albumentations import HorizontalFlip
+from albumentations import RandomBrightness
+from albumentations import RandomContrast
 from albumentations import RandomCrop
+from albumentations import RandomScale
+from albumentations import Rotate
 from albumentations.pytorch import ToTensor
 
 from ..config import Config
@@ -35,6 +40,20 @@ class TransformFactory:
                 IAAAdditiveGaussianNoise(scale=config.GAUSSIAN_NOISE_SCALE),
                 Blur(blur_limit=config.BLUR_LIMIT),
                 Rescale(config.OUTPUT_SIZE),
+                RandomCrop(config.OUTPUT_SIZE, config.OUTPUT_SIZE),
+            ])
+
+        if config.TRANSFORMATION == 'EXTENSIVE_TRANSFORM':
+
+            image_transform = Compose([
+                HorizontalFlip(),
+                Rotate(**config.ROTATE),
+                RandomBrightness(),
+                RandomContrast(),
+                IAAAdditiveGaussianNoise(scale=config.GAUSSIAN_NOISE_SCALE),
+                Blur(blur_limit=config.BLUR_LIMIT),
+                Rescale(config.OUTPUT_SIZE),
+                RandomScale(**config.RANDOM_SCALE),
                 RandomCrop(config.OUTPUT_SIZE, config.OUTPUT_SIZE),
             ])
 

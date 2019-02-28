@@ -10,8 +10,8 @@ from torch.utils.data import DataLoader
 
 from road_roughness_prediction.config import EvalConfig
 from road_roughness_prediction import models
-from road_roughness_prediction.dataset import SurfaceCategoryDatasetFactory
-from road_roughness_prediction.dataset.transformations import TransformFactory
+from road_roughness_prediction.datasets import SurfaceCategoryDatasetFactory
+from road_roughness_prediction.datasets.transformations import TransformFactory
 from road_roughness_prediction.tools import calc_plot_confusion_matrix
 
 

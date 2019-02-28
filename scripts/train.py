@@ -12,8 +12,8 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import WeightedRandomSampler
 
 from road_roughness_prediction.config import Config
-from road_roughness_prediction.dataset import SurfaceCategoryDatasetFactory
-from road_roughness_prediction.dataset.transformations import TransformFactory
+from road_roughness_prediction.datasets import SurfaceCategoryDatasetFactory
+from road_roughness_prediction.datasets.transformations import TransformFactory
 from road_roughness_prediction import models
 
 

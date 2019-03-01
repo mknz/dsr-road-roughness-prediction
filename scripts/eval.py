@@ -61,6 +61,7 @@ class Evaluator:
             loader=self.loader,
             class_names=self.loader.dataset.categories,
             fig_save_path=fig_save_path,
+            group='evaluation',
         )
 
 

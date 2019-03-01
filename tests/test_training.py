@@ -14,7 +14,7 @@ class TestTraining:
     n_class = len(categories)
 
     config = Config()
-    config.from_dict(dict(TRANSFORMATION=TransformType.BASIC_EVAL_TRANSFORM))
+    config.from_dict(dict(TRANSFORMATION=TransformType.BASIC_TRANSFORM))
 
     workdir = Path(tempfile.mkdtemp())
 

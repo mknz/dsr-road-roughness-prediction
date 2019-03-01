@@ -13,5 +13,4 @@ install:
   - pip install -r requirements.txt -q
 script:
   - export PYTHONPATH=$PWD
-  - ./tests/test_train.sh
   - pytest tests

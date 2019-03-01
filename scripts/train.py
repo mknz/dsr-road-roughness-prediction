@@ -1,5 +1,5 @@
 import sys
-import time
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -7,15 +7,19 @@ from tqdm import tqdm
 
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import WeightedRandomSampler
+
+from tensorboardX import SummaryWriter
 
 from road_roughness_prediction.config import Config
 from road_roughness_prediction.datasets import SurfaceCategoryDatasetFactory
 from road_roughness_prediction.datasets.transformations import TransformFactory
 from road_roughness_prediction.datasets.transformations import TransformType
 from road_roughness_prediction import models
+from road_roughness_prediction.training import evaluate
 
 
 np.set_printoptions(precision=4)
@@ -79,7 +83,7 @@ def train(
         model_name='tiny_cnn',
         debug=False,
         cpu=False,
-        save_dir=None,
+        log_dir=None,
         is_class_balanced=False,
         seed=1,
         device_id=0,
@@ -87,6 +91,8 @@ def train(
     seed = seed
     torch.manual_seed(seed)
     np.random.seed(seed)
+
+    writer = SummaryWriter(str(log_dir))
 
     train_loader, validation_loader = create_train_validation_split_loader(
         dataset,
@@ -113,8 +119,8 @@ def train(
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(net.parameters())
 
-    for i in range(epochs):
-        print(f'epoch: {i + 1:03d}')
+    for epoch in range(1, epochs + 1):
+        print(f'epoch: {epoch:03d}')
         sys.stdout.flush()
         train_loss = 0.
         net.train()
@@ -131,42 +137,38 @@ def train(
 
             train_loss += loss.item()
 
-        test(net, validation_loader, n_class)
-        print(f'train loss: {train_loss / batch_size:.4f}')
-        if save_dir:
-            torch.save(net.state_dict(), str(save_dir / f'{model_name}_dict_epoch_{i + 1:03d}.pth'))
+        train_loss /= len(train_loader.dataset)
+        print('---train---')
+        print(f'loss: {train_loss:.4f}')
+        writer.add_scalar('train/loss', train_loss, epoch)
+
+        evaluate(
+            net=net,
+            loader=validation_loader,
+            class_names=dataset.categories,
+            epoch=epoch,
+            writer=writer,
+            group='validation',
+        )
+
+        torch.save(net.state_dict(), str(log_dir / f'{model_name}_dict_epoch_{epoch:03d}.pth'))
 
 
-def test(net, loader: DataLoader, n_class):
-    net.eval()
-    class_count = [0 for _ in range(n_class)]
-    class_correct = [0 for _ in range(n_class)]
-    with torch.no_grad():
-        for X, labels in loader:
-            outputs = net.forward(X)
-            _, predicted = torch.max(outputs, 1)
-            for pred, label in zip(predicted.tolist(), labels.tolist()):
-                class_count[int(label)] += 1
-                class_correct[int(label)] += int(pred == label)
-
-    accuracy = sum(class_correct) / sum(class_count)
-    class_accuracy = [
-        correct / count if count > 0 else 0.
-        for correct, count
-        in zip(class_correct, class_count)
-    ]
-
-    print(f'total_accuracy: {accuracy}')
-    print(f'class_accuracy: {class_accuracy}')
-    print(f'class_count: {class_count}')
-    print(f'class_correct: {class_correct}')
+def _get_log_dir(args) -> Path:
+    '''Construct log directory path'''
+    current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    root = Path(args.save_dir)
+    log_dir = root / args.model_name / args.transform / args.run_id / current_time
+    if not log_dir.parent.exists():
+        log_dir.parent.mkdir(parents=True)
+    return log_dir
 
 
 def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--data-dir', required=True)
-    parser.add_argument('--save-dir', default='./results')
+    parser.add_argument('--save-dir', default='./runs')
     parser.add_argument('--target-dir-name', required=True)
     parser.add_argument('--categories', nargs='+', required=True)
     parser.add_argument('--debug', action='store_true')
@@ -183,6 +185,7 @@ def main():
     parser.add_argument('--device-id', type=int, default=0)
     parser.add_argument('--dir-type', choices=['deep', 'shallow'], default='deep')
     parser.add_argument('--transform', default='basic_transform')
+    parser.add_argument('--run-id', default='standard')
 
     args = parser.parse_args()
     print(args)
@@ -192,9 +195,7 @@ def main():
     target_dir_name = args.target_dir_name
     assert data_dir.exists(), f'{str(data_dir)} does not exist.'
 
-    save_dir = Path(args.save_dir) / str(time.time())
-    if not save_dir.exists():
-        save_dir.mkdir(parents=True)
+    log_dir = _get_log_dir(args)
 
     dir_type = args.dir_type
 
@@ -226,7 +227,7 @@ def main():
         model_name=args.model_name,
         debug=args.debug,
         cpu=args.cpu,
-        save_dir=save_dir,
+        log_dir=log_dir,
         seed=args.seed,
         is_class_balanced=args.class_balanced,
         device_id=args.device_id,

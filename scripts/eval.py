@@ -13,7 +13,7 @@ from road_roughness_prediction import models
 from road_roughness_prediction.datasets import SurfaceCategoryDatasetFactory
 from road_roughness_prediction.datasets.transformations import TransformFactory
 from road_roughness_prediction.datasets.transformations import TransformType
-from road_roughness_prediction.tools import calc_plot_confusion_matrix
+from road_roughness_prediction.training import evaluate
 
 
 np.set_printoptions(precision=4)
@@ -55,39 +55,13 @@ class Evaluator:
 
         self.net.load_state_dict(state_dict=torch.load(weight_path))
 
-    def evaluate(self, save_fig_path):
-        self.net.eval()
-
-        class_count = [0 for _ in range(self.n_class)]
-        class_correct = [0 for _ in range(self.n_class)]
-        y_test = []
-        y_pred = []
-
-        with torch.no_grad():
-            for X, labels in self.loader:
-                outputs = self.net.forward(X)
-                _, predicted = torch.max(outputs, 1)
-                labels_ = labels.tolist()
-                predicted_ = predicted.tolist()
-                y_test += labels_
-                y_pred += predicted_
-                for label, pred in zip(labels_, predicted_):
-                    class_count[int(label)] += 1
-                    class_correct[int(label)] += int(pred == label)
-
-        calc_plot_confusion_matrix(y_test, y_pred, self.categories, save_fig_path)
-
-        accuracy = sum(class_correct) / sum(class_count)
-        class_accuracy = [
-            correct / count if count > 0 else 0.
-            for correct, count
-            in zip(class_correct, class_count)
-        ]
-
-        print(f'total_accuracy: {accuracy}')
-        print(f'class_accuracy: {class_accuracy}')
-        print(f'class_count: {class_count}')
-        print(f'class_correct: {class_correct}')
+    def evaluate(self, fig_save_path):
+        evaluate(
+            net=self.net,
+            loader=self.loader,
+            class_names=self.loader.dataset.categories,
+            fig_save_path=fig_save_path,
+        )
 
 
 def main():
@@ -98,14 +72,14 @@ def main():
     parser.add_argument('--dir-type', choices=['deep', 'shallow'], default='shallow')
     parser.add_argument('--categories', nargs='+')
     parser.add_argument('--model-name', type=str, default='tiny_cnn')
-    parser.add_argument('--save-fig-path')
+    parser.add_argument('--fig-save-path')
     args = parser.parse_args()
     print(args)
 
     data_dir = Path(args.image_dir)
     assert data_dir.exists(), f'Not found {str(data_dir)}'
 
-    save_fig_path = Path(args.save_fig_path) if args.save_fig_path else None
+    fig_save_path = Path(args.fig_save_path) if args.fig_save_path else None
 
     evaluator = Evaluator(
         weight_path=Path(args.weight_path),
@@ -115,7 +89,7 @@ def main():
         target_dir_name=args.target_dir_name,
         dir_type=args.dir_type,
     )
-    evaluator.evaluate(save_fig_path=save_fig_path)
+    evaluator.evaluate(fig_save_path=fig_save_path)
 
 
 if __name__ == '__main__':

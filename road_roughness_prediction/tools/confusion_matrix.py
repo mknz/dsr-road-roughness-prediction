@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 
 from sklearn.metrics import confusion_matrix
 
+from ..tools.image_utils import matplot_to_pil
+
 
 def plot_confusion_matrix(cm, classes,
                           normalize=False,
@@ -25,6 +27,8 @@ def plot_confusion_matrix(cm, classes,
 
     print(cm)
 
+    fig_size = (12, 10)
+    fig = plt.figure(figsize=fig_size)
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     plt.title(title)
     plt.colorbar()
@@ -35,13 +39,17 @@ def plot_confusion_matrix(cm, classes,
     fmt = '.2f' if normalize else 'd'
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(j, i, format(cm[i, j], fmt),
-                 horizontalalignment="center",
-                 color="white" if cm[i, j] > thresh else "black")
+        plt.text(
+            j, i, format(cm[i, j], fmt),
+            horizontalalignment="center",
+            color="white" if cm[i, j] > thresh else "black",
+        )
 
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
     plt.tight_layout()
+
+    return fig
 
 
 def _prep_label(y_test, y_pred, class_names):
@@ -59,10 +67,17 @@ def _prep_label(y_test, y_pred, class_names):
     return y_test_, y_pred_, class_names_
 
 
-def calc_plot_confusion_matrix(y_test, y_pred, class_names, save_path: Path):
+def calc_plot_confusion_matrix(
+        y_test,
+        y_pred,
+        class_names,
+        fig_save_path: Path = None,
+        writer=None,
+        group=None,
+        epoch=None,
+        show_plot=False
+):
     '''Calculate and plot confusion matrix'''
-
-    fig_size = (12, 10)
 
     y_test_, y_pred_, class_names_ = _prep_label(y_test, y_pred, class_names)
 
@@ -70,33 +85,39 @@ def calc_plot_confusion_matrix(y_test, y_pred, class_names, save_path: Path):
     cnf_matrix = confusion_matrix(y_test_, y_pred_)
     np.set_printoptions(precision=2)
 
+    def _save(fig, path, cond: str):
+        filename = path.stem + cond + path.suffix
+        save_path = path.parent / filename
+        fig.savefig(save_path)
+
+
+    def _handle_output(fig, fig_save_path, writer, cond, group, epoch, show_plot):
+        if fig_save_path:
+            _save(fig, fig_save_path, f'_{cond}')
+
+        if writer:
+            img = np.array(matplot_to_pil(fig)).astype(np.uint8)
+            img_ = img[:, :, :3]  # Remove alpha
+            writer.add_image(f'{group}/cm/{cond}', img_, epoch, dataformats='HWC')
+
+        if show_plot:
+            fig.show()
+
     # Plot non-normalized confusion matrix
-    plt.figure(figsize=fig_size)
-    plot_confusion_matrix(
+    fig = plot_confusion_matrix(
         cnf_matrix,
         classes=class_names_,
         title='Confusion matrix, without normalization',
     )
 
-    def _save(path, cond: str):
-        filename = path.stem + cond + path.suffix
-        save_path = path.parent / filename
-        plt.savefig(save_path)
-
-    if save_path:
-        _save(save_path, '_without_norm')
+    _handle_output(fig, fig_save_path, writer, 'non_norm', group, epoch, show_plot)
 
     # Plot normalized confusion matrix
-    plt.figure(figsize=fig_size)
-    plot_confusion_matrix(
+    fig = plot_confusion_matrix(
         cnf_matrix,
         classes=class_names_,
         normalize=True,
         title='Normalized confusion matrix',
     )
 
-    if save_path:
-        _save(save_path, '_with_norm')
-
-    if not save_path:
-        plt.show()
+    _handle_output(fig, fig_save_path, writer, 'with_norm', group, epoch, show_plot)

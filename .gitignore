@@ -108,3 +108,4 @@ venv.bak/
 obsolete/
 tmp/
 activate_env_dev.sh
+data

@@ -14,3 +14,9 @@ export PYTHONPATH=$PWD
 ```
 pytest --interactive ./tests
 ```
+
+## See training logs using tensorboard
+
+```
+tensorboard --logdir $LOGDIR
+```

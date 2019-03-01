@@ -10,9 +10,6 @@ from road_roughness_prediction.datasets.transformations import TransformType
 
 class TestTraining:
 
-    categories = ['asphalt', 'grass']
-    n_class = len(categories)
-
     config = Config()
     config.from_dict(dict(TRANSFORMATION=TransformType.BASIC_TRANSFORM))
 
@@ -31,8 +28,6 @@ class TestTraining:
         '--transform', 'extensive_transform',
         '--save-dir', str(workdir),
     ]
-    args.append('--categories')
-    args += categories
 
     def teardown_class(self):
         # Delete temp dir and all of its content

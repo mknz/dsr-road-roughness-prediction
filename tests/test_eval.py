@@ -9,18 +9,17 @@ import torch
 
 from road_roughness_prediction.config import Config
 from road_roughness_prediction.datasets.transformations import TransformType
+from road_roughness_prediction.datasets.surface_types import SurfaceBasicCategory
 from road_roughness_prediction import models
 
 
 class TestEvaluation:
 
-    categories = ['asphalt', 'grass']
-    n_class = len(categories)
-
     config = Config()
     config.from_dict(dict(TRANSFORMATION=TransformType.BASIC_EVAL_TRANSFORM))
 
     workdir = Path(tempfile.mkdtemp())
+    n_class = len(SurfaceBasicCategory)
 
     # Create dummy weight
     net = models.TinyCNN(n_class)
@@ -37,9 +36,7 @@ class TestEvaluation:
         '--model-name', 'tiny_cnn',
         '--dir-type', 'deep',
         '--target-dir-name', 'ready',
-        '--categories',
     ]
-    args += categories
 
     def teardown_class(self):
         # Delete temp dir and all of its content

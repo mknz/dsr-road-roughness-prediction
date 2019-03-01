@@ -107,7 +107,7 @@ def train(
         device = torch.device(f'cuda:{device_id}' if torch.cuda.is_available() else "cpu")
         torch.cuda.manual_seed(seed)
 
-    n_class = len(dataset.categories)
+    n_class = len(dataset.category_type)
 
     if model_name == 'tiny_cnn':
         net = models.TinyCNN(n_class)
@@ -145,7 +145,7 @@ def train(
         evaluate(
             net=net,
             loader=validation_loader,
-            class_names=dataset.categories,
+            class_names=dataset.category_type.get_class_names(),
             epoch=epoch,
             writer=writer,
             group='validation',
@@ -170,7 +170,6 @@ def main():
     parser.add_argument('--data-dir', required=True)
     parser.add_argument('--save-dir', default='./runs')
     parser.add_argument('--target-dir-name', required=True)
-    parser.add_argument('--categories', nargs='+', required=True)
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--cpu', action='store_true')
     parser.add_argument('--class-balanced', action='store_true')
@@ -191,7 +190,6 @@ def main():
     print(args)
 
     data_dir = Path(args.data_dir)
-    categories = args.categories
     target_dir_name = args.target_dir_name
     assert data_dir.exists(), f'{str(data_dir)} does not exist.'
 
@@ -210,7 +208,6 @@ def main():
 
     dataset = SurfaceCategoryDatasetFactory(
         data_dir,
-        categories,
         target_dir_name,
         dir_type,
         transform,

@@ -25,12 +25,9 @@ class Evaluator:
             weight_path: Path,
             data_dir,
             target_dir_name,
-            categories: List[str],
             model_name: str,
             dir_type: str,
     )-> None:
-        self.categories = categories
-        self.n_class = len(categories)
 
         self.config = Config()
         self.config.from_dict(dict(TRANSFORMATION=TransformType.BASIC_EVAL_TRANSFORM))
@@ -38,13 +35,14 @@ class Evaluator:
 
         dataset = SurfaceCategoryDatasetFactory(
             data_dir,
-            categories,
             target_dir_name,
             dir_type,
             transform,
         )
         assert len(dataset), f'No data found in {data_dir}'
         dataset.show_dist()
+
+        self.n_class = len(dataset.category_type)
 
         self.loader = DataLoader(dataset, batch_size=100)
 
@@ -59,7 +57,7 @@ class Evaluator:
         evaluate(
             net=self.net,
             loader=self.loader,
-            class_names=self.loader.dataset.categories,
+            class_names=self.loader.dataset.category_type.get_class_names(),
             fig_save_path=fig_save_path,
             group='evaluation',
         )
@@ -71,7 +69,6 @@ def main():
     parser.add_argument('--image-dir')
     parser.add_argument('--target-dir-name')
     parser.add_argument('--dir-type', choices=['deep', 'shallow'], default='shallow')
-    parser.add_argument('--categories', nargs='+')
     parser.add_argument('--model-name', type=str, default='tiny_cnn')
     parser.add_argument('--fig-save-path')
     args = parser.parse_args()
@@ -85,7 +82,6 @@ def main():
     evaluator = Evaluator(
         weight_path=Path(args.weight_path),
         data_dir=data_dir,
-        categories=args.categories,
         model_name=args.model_name,
         target_dir_name=args.target_dir_name,
         dir_type=args.dir_type,

@@ -4,6 +4,7 @@ albumentations==0.1.12
 numpy
 matplotlib
 opencv-python
+tensorflow
 tensorboardX
 toml
 tqdm==4.19.9

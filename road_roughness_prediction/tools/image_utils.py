@@ -5,11 +5,17 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 
+def save_and_open(save_func):
+    '''Save to in-memory buffer and re-open '''
+    buf = BytesIO()
+    save_func(buf)
+    buf.seek(0)
+    bytes_ = buf.read()
+    buf_ = BytesIO(bytes_)
+    return buf_
+
+
 def matplot_to_pil(fig: plt.Figure):
     '''Convert matplot figure to PIL Image'''
-    bio = BytesIO()
-    fig.savefig(bio)
-    bio.seek(0)
-    byte_img = bio.read()
-    bio_img = BytesIO(byte_img)
-    return Image.open(bio_img)
+    buf = save_and_open(fig.savefig)
+    return Image.open(buf)

@@ -1,0 +1,7 @@
+asphalt
+grass
+soil
+flat_stones
+paving_stones
+sett
+bicycle_tyles

@@ -6,13 +6,13 @@
 
 ```
 export PYTHONPATH=$PWD
-./test/test_all.sh
+pytest tests
 ```
 
 ## Run interactive tests (show some images)
 
 ```
-pytest --interactive ./tests
+pytest --interactive tests
 ```
 
 ## See training logs using tensorboard

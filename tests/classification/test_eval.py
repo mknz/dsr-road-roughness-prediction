@@ -7,10 +7,10 @@ import tempfile
 import pytest
 import torch
 
-from road_roughness_prediction.config import Config
-from road_roughness_prediction.datasets.transformations import TransformType
-from road_roughness_prediction.datasets.surface_types import SurfaceBasicCategory
-from road_roughness_prediction import models
+from road_roughness_prediction.classification.config import Config
+from road_roughness_prediction.classification.datasets.transformations import TransformType
+from road_roughness_prediction.classification.datasets.surface_types import SurfaceBasicCategory
+from road_roughness_prediction.classification import models
 
 
 class TestEvaluation:
@@ -30,7 +30,7 @@ class TestEvaluation:
 
     args = [
         'python3',
-        'scripts/eval.py',
+        'scripts/classification/eval.py',
         '--weight-path', str(weight_path),
         '--image-dir', str(image_dir),
         '--model-name', 'tiny_cnn',

@@ -1,10 +1,10 @@
 '''Model inference'''
 import torch
 
-from road_roughness_prediction.config import Config
-from road_roughness_prediction import models
-from road_roughness_prediction.datasets.transformations import TransformFactory
-from road_roughness_prediction.datasets.transformations import TransformType
+from ..config import Config
+from .. import models
+from ..datasets.transformations import TransformFactory
+from ..datasets.transformations import TransformType
 
 
 class ModelInference:

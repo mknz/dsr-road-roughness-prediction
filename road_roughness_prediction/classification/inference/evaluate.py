@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from ..tools import calc_plot_confusion_matrix
+from road_roughness_prediction.tools import calc_plot_confusion_matrix
 
 
 def evaluate(net, loader: DataLoader, class_names,

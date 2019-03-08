@@ -28,8 +28,7 @@ from road_roughness_prediction.segmentation.inference import evaluate
 def train(net, loader, epoch, optimizer, criterion, device, writer, params={}):
     total_loss = 0.
     net.train()
-    outputs = []
-    for batch in tqdm(loader):
+    for i, batch in enumerate(tqdm(loader)):
         X = batch['X']
         Y = batch['Y']
         X.to(device)
@@ -37,13 +36,15 @@ def train(net, loader, epoch, optimizer, criterion, device, writer, params={}):
 
         optimizer.zero_grad()
         out = net.forward(X)
-        outputs.append(out)
 
         loss = criterion(out, Y)
         loss.backward()
         optimizer.step()
 
         total_loss += loss.item()
+        if i == 0:
+            first_batch = batch
+            first_out = out
 
     total_loss /= len(loader.dataset)
     print(f'train loss: {total_loss:.4f}')
@@ -53,11 +54,7 @@ def train(net, loader, epoch, optimizer, criterion, device, writer, params={}):
 
     # Record first batch output
     n_save = 8
-    out_first = outputs[0]
-    if out_first.shape[0] > n_save:
-        out_save = make_grid(out_first[:n_save, :, :, :], normalize=True)
-    else:
-        out_save = make_grid(out_first, normalize=True)
+    out_save = make_grid(first_out[:n_save, :, :, :], normalize=True)
     writer.add_image('train/outputs', out_save, epoch)
 
     # Save model
@@ -174,7 +171,7 @@ def main():
         print(f'epoch: {epoch:03d}')
         sys.stdout.flush()
         train(net, train_loader, epoch, optimizer, criterion, device, writer, train_params)
-        evaluate(net, validation_loader, epoch, writer, 'validation', eval_params)
+        evaluate(net, validation_loader, epoch, device, writer, 'validation', eval_params)
 
 
 if __name__ == '__main__':

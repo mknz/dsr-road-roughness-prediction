@@ -21,7 +21,7 @@ def _resize_image(image, width=256):
     return cv2.resize(image, (int(w * rate), int(h * rate)))
 
 
-def evaluate(net, loader: DataLoader, epoch=None, writer=None, group=None, params={}):
+def evaluate(net, loader: DataLoader, epoch=None, device=None, writer=None, group=None, params={}):
     '''Evaluate trained model, optionally write result using TensorboardX'''
 
     jaccard_weight = params['jaccard_weight']
@@ -29,57 +29,48 @@ def evaluate(net, loader: DataLoader, epoch=None, writer=None, group=None, param
     net.eval()
     loss = 0.
 
-    outputs = []
-    n_save = 8
-
     criterion = models.LossBinary(jaccard_weight)
     with torch.no_grad():
-        for batch in loader:
+        for i, batch in enumerate(loader):
             X = batch['X']
             Y = batch['Y']
+            X.to(device)
+            Y.to(device)
+
             out = net.forward(X)
             loss += criterion(out, Y)
 
-            outputs.append(out)
-            if epoch == 1 and writer:  # Write raw images only once
-                image_paths = batch['image_path']
-                mask_paths = batch['mask_path']
-                if len(image_paths) > n_save:
-                    image_paths_ = image_paths[:n_save]
-                    mask_paths_ = mask_paths[:n_save]
-                    X_ = X[:n_save, :, :, :]
-                    Y_ = Y[:n_save, :, :]
-                else:
-                    image_paths_ = image_paths
-                    mask_paths_ = mask_paths
-                    X_ = X
-                    Y_ = Y
-
-                images = np.array([_resize_image(load_image(p)) for p in image_paths_])
-                masks = np.array([_resize_image(load_image(p)) for p in mask_paths_])
-
-                writer.add_images(f'{group}/images', images/255, epoch, dataformats='NHWC')
-                writer.add_images(f'{group}/masks', masks/255, epoch, dataformats='NHWC')
-
-                x_save = make_grid(X_, normalize=True)
-                writer.add_image(f'{group}/inputs', x_save, epoch)
-
-                y_save = make_grid(Y_, normalize=True)
-                writer.add_image(f'{group}/targets', y_save, epoch)
+            if i == 0:
+                first_out = out
+                first_batch = batch
 
     loss /= len(loader.dataset)
-    print(f'---{group}---')
-    print(f'loss: {loss:.4f}')
+    print(f'{group} loss: {loss:.4f}')
 
-    # TensorboardX
+    n_save = 8
+
+    # First epoch
+    if epoch == 1 and writer:
+        image_paths = first_batch['image_path'][:n_save]
+        mask_paths = first_batch['mask_path'][:n_save]
+        X_ = first_batch['X'][:n_save, :, :, :]
+        Y_ = first_batch['Y'][:n_save, :, :]
+
+        images = np.array([_resize_image(load_image(p)) for p in image_paths])
+        masks = np.array([_resize_image(load_image(p)) for p in mask_paths])
+
+        writer.add_images(f'{group}/images', images/255, epoch, dataformats='NHWC')
+        writer.add_images(f'{group}/masks', masks/255, epoch, dataformats='NHWC')
+
+        x_save = make_grid(X_, normalize=True)
+        writer.add_image(f'{group}/inputs', x_save, epoch)
+
+        y_save = make_grid(Y_, normalize=True)
+        writer.add_image(f'{group}/targets', y_save, epoch)
+
+    # Every epoch
     if writer:
         writer.add_scalar(f'{group}/loss', loss, epoch)
-
-        outputs = torch.cat(outputs, dim=0)
-        if outputs.shape[0] > n_save:
-            outputs_ = outputs[:n_save, :, :, :]
-        else:
-            outputs_ = outputs
-
-        out_save = make_grid(outputs_, normalize=True)
+        out_ = first_out[:n_save, :, :, :]
+        out_save = make_grid(out_, normalize=True)
         writer.add_image(f'{group}/outputs', out_save, epoch)

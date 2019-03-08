@@ -63,7 +63,8 @@ def test_create_binary_mask_dataset():
     # Only one file
     assert len(dataset) == 1
 
-    image, mask = dataset[0]
+    data = dataset[0]
+    mask = data['Y']
 
     # Binary mask
     assert set(mask.unique().tolist()) == set([0, 1])

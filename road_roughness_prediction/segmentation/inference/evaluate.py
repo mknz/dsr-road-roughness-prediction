@@ -5,25 +5,29 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
+from albumentations.augmentations.functional import center_crop
+
 from road_roughness_prediction.segmentation import models
 from road_roughness_prediction.tools.torch import make_resized_grid
 
 
-def load_image(path):
-    img = cv2.imread(str(path))
-    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+def _load_images(paths, size=256):
+    imgs = [cv2.imread(str(path)) for path in paths]
+    imgs = [cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in imgs]
+    imgs = [center_crop(img, size, size) for img in imgs]
+    return np.array(imgs)
 
 
-def _resize_image(image, width=256):
-    h, w, _ = image.shape
-    rate = width / w
-    return cv2.resize(image, (int(w * rate), int(h * rate)))
-
-
-def evaluate(net, loader: DataLoader, epoch=None, device=None, writer=None, group=None, params={}):
+def evaluate(
+        net,
+        loader: DataLoader,
+        epoch=None,
+        device=None,
+        writer=None,
+        group=None,
+        jaccard_weight=0.2
+):
     '''Evaluate trained model, optionally write result using TensorboardX'''
-
-    jaccard_weight = params['jaccard_weight']
 
     net.eval()
     loss = 0.
@@ -56,8 +60,8 @@ def evaluate(net, loader: DataLoader, epoch=None, device=None, writer=None, grou
         X_ = first_batch['X'][:n_save, :, :, :]
         Y_ = first_batch['Y'][:n_save, :, :]
 
-        images = np.array([_resize_image(load_image(p)) for p in image_paths])
-        masks = np.array([_resize_image(load_image(p)) for p in mask_paths])
+        images = _load_images(image_paths)
+        masks = _load_images(mask_paths)
 
         writer.add_images(f'{group}/images', images/255, epoch, dataformats='NHWC')
         writer.add_images(f'{group}/masks', masks/255, epoch, dataformats='NHWC')

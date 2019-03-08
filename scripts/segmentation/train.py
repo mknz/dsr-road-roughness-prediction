@@ -25,7 +25,7 @@ from road_roughness_prediction.segmentation.inference import evaluate
 from road_roughness_prediction.tools.torch import make_resized_grid
 
 
-def train(net, loader, epoch, optimizer, criterion, device, writer, params={}):
+def train(net, loader, epoch, optimizer, criterion, device, writer, model_name):
     total_loss = 0.
     net.train()
     for i, batch in enumerate(tqdm(loader)):
@@ -58,7 +58,6 @@ def train(net, loader, epoch, optimizer, criterion, device, writer, params={}):
     writer.add_image('train/outputs', out_save, epoch)
 
     # Save model
-    model_name = params['model_name']
     save_path = Path(writer.log_dir) / f'{model_name}_dict_epoch_{epoch:03d}.pth'
     torch.save(net.state_dict(), str(save_path))
 
@@ -164,14 +163,11 @@ def main():
 
     optimizer = torch.optim.Adam(net.parameters())
 
-    train_params = dict(model_name=model_name)
-    eval_params = dict(jaccard_weight=jaccard_weight)
-
     for epoch in range(1, args.epochs + 1):
         print(f'epoch: {epoch:03d}')
         sys.stdout.flush()
-        train(net, train_loader, epoch, optimizer, criterion, device, writer, train_params)
-        evaluate(net, validation_loader, epoch, device, writer, 'validation', eval_params)
+        train(net, train_loader, epoch, optimizer, criterion, device, writer, model_name)
+        evaluate(net, validation_loader, epoch, device, writer, 'validation', jaccard_weight)
 
 
 if __name__ == '__main__':

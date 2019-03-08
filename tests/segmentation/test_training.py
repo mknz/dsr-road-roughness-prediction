@@ -13,10 +13,13 @@ class TestTraining:
     args = [
         'python3',
         'scripts/segmentation/train.py',
-        '--data-dirs', str(image_dir), str(image_dir),  str(image_dir),
+        '--train-data-dirs', str(image_dir), str(image_dir),  str(image_dir),
+        '--validation-data-dirs', str(image_dir), str(image_dir),  str(image_dir),
+        '--input-size', '64', '64',
         '--batch-size', '128',
         '--epochs', '2',
         '--save-dir', str(workdir),
+        '--run-name', 'test',
         '--cpu',
     ]
 

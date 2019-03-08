@@ -60,8 +60,12 @@ class SidewalkSegmentationDataset(Dataset):
         data = {'image': image, 'mask': mask}
         augmented = self._transform(**data)
         image, mask = augmented['image'], augmented['mask']
-
-        return to_tensor(image), to_tensor(mask)
+        return dict(
+            X=to_tensor(image),
+            Y=to_tensor(mask),
+            image_path=str(image_path),
+            mask_path=str(mask_path),
+        )
 
     def get_raw_image(self, idx):
         image_path = self.image_paths[idx]

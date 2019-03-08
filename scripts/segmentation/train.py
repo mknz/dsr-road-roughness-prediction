@@ -1,3 +1,4 @@
+'''Segmentation training'''
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -6,11 +7,15 @@ import numpy as np
 from tqdm import tqdm
 
 import torch
-from torch import nn
-import torch.nn.functional as F
 
 from torch.utils.data import DataLoader
-from torch.utils.data.sampler import WeightedRandomSampler
+from torchvision.utils import make_grid
+
+from albumentations import Compose
+from albumentations import RandomCrop
+from albumentations import CenterCrop
+from albumentations import HorizontalFlip
+from albumentations import Normalize
 
 from tensorboardX import SummaryWriter
 
@@ -20,114 +25,52 @@ from road_roughness_prediction.segmentation import models
 from road_roughness_prediction.segmentation.inference import evaluate
 
 
-def _get_weights(dataset, validation_split):
-    '''Create weights for sampler'''
+def train(net, loader, epoch, optimizer, criterion, device, writer, params={}):
+    total_loss = 0.
+    net.train()
+    outputs = []
+    for batch in tqdm(loader):
+        X = batch['X']
+        Y = batch['Y']
+        X.to(device)
+        Y.to(device)
 
-    # Init weights with zero
-    weights_train = [0. for _ in range(len(dataset))]
-    weights_validation = [0. for _ in range(len(dataset))]
+        optimizer.zero_grad()
+        out = net.forward(X)
+        outputs.append(out)
 
-    for i in range(len(dataset)):
-        weight = 1.
-        if np.random.random() > validation_split:
-            weights_train[i] = weight
-        else:
-            weights_validation[i] = weight
+        loss = criterion(out, Y)
+        loss.backward()
+        optimizer.step()
 
-    return weights_train, weights_validation
+        total_loss += loss.item()
 
+    total_loss /= len(loader.dataset)
+    print(f'train loss: {total_loss:.4f}')
 
-def _get_loader(
-        dataset,
-        batch_size,
-        validation_split=0.2,
-):
-    n_data = len(dataset)
-    weights_train, weights_validation = _get_weights(dataset, validation_split)
+    # Record loss
+    writer.add_scalar('train/loss', total_loss, epoch)
 
-    train_sampler = WeightedRandomSampler(weights_train, num_samples=n_data - 1)
-    validation_sampler = WeightedRandomSampler(weights_validation, num_samples=n_data - 1)
-
-    train_loader = DataLoader(dataset, batch_size=batch_size, sampler=train_sampler)
-    validation_loader = DataLoader(dataset, batch_size=batch_size, sampler=validation_sampler)
-    return train_loader, validation_loader
-
-
-def train(
-        dataset,
-        epochs=10,
-        batch_size=128,
-        validation_split=0.2,
-        model_name='unet11',
-        debug=False,
-        cpu=False,
-        log_dir=None,
-        seed=1,
-        device_id=0,
-):
-    seed = seed
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-
-    writer = SummaryWriter(str(log_dir))
-
-    train_loader, validation_loader = _get_loader(
-        dataset,
-        batch_size,
-        validation_split,
-    )
-
-    if cpu:
-        device = 'cpu'
+    # Record first batch output
+    n_save = 8
+    out_first = outputs[0]
+    if out_first.shape[0] > n_save:
+        out_save = make_grid(out_first[:n_save, :, :, :], normalize=True)
     else:
-        device = torch.device(f'cuda:{device_id}' if torch.cuda.is_available() else "cpu")
-        torch.cuda.manual_seed(seed)
+        out_save = make_grid(out_first, normalize=True)
+    writer.add_image('train/outputs', out_save, epoch)
 
-    model_name = 'unet11'
-    net = models.UNet11(pretrained=True)
-
-    criterion = nn.BCEWithLogitsLoss()
-    optimizer = torch.optim.Adam(net.parameters())
-
-    for epoch in range(1, epochs + 1):
-        print(f'epoch: {epoch:03d}')
-        sys.stdout.flush()
-        train_loss = 0.
-        net.train()
-        for X, Y in tqdm(train_loader):
-            X.to(device)
-            Y.to(device)
-
-            optimizer.zero_grad()
-            outputs = net.forward(X)
-
-            loss = criterion(outputs, Y)
-            loss.backward()
-            optimizer.step()
-
-            train_loss += loss.item()
-
-        train_loss /= len(train_loader.dataset)
-        print('---train---')
-        print(f'loss: {train_loss:.4f}')
-        writer.add_scalar('train/loss', train_loss, epoch)
-
-        evaluate(
-            net=net,
-            loader=validation_loader,
-            epoch=epoch,
-            writer=writer,
-            group='validation',
-        )
-
-        torch.save(net.state_dict(), str(log_dir / f'{model_name}_dict_epoch_{epoch:03d}.pth'))
+    # Save model
+    model_name = params['model_name']
+    save_path = Path(writer.log_dir) / f'{model_name}_dict_epoch_{epoch:03d}.pth'
+    torch.save(net.state_dict(), str(save_path))
 
 
 def _get_log_dir(args) -> Path:
     '''Construct log directory path'''
     current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     root = Path(args.save_dir)
-    log_dir = root / args.model_name / args.transform / args.run_id / current_time
+    log_dir = root / args.model_name / args.run_name / current_time
     if not log_dir.parent.exists():
         log_dir.parent.mkdir(parents=True)
     return log_dir
@@ -136,60 +79,102 @@ def _get_log_dir(args) -> Path:
 def main():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data-dirs', required=True, nargs='+')
+    parser.add_argument('--train-data-dirs', required=True, nargs='+')
+    parser.add_argument('--validation-data-dirs', required=True, nargs='+')
     parser.add_argument('--save-dir', default='./runs')
-    parser.add_argument('--debug', action='store_true')
     parser.add_argument('--cpu', action='store_true')
-    parser.add_argument('--class-balanced', action='store_true')
     parser.add_argument('--epochs', type=int, default=10)
+    parser.add_argument('--input-size', type=int, nargs=2, default=(640, 640))
+    parser.add_argument('--jaccard-weight', type=float, default=0.3)
 
     available_networks = ['unet11']
     parser.add_argument('--model-name', type=str, default='unet11', choices=available_networks)
 
     parser.add_argument('--batch-size', type=int, default=128)
-    parser.add_argument('--validation-split', type=float, default=0.2)
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--device-id', type=int, default=0)
-    parser.add_argument('--transform', default='basic_transform')
-    parser.add_argument('--run-id', default='standard')
+    parser.add_argument('--run-name', type=str, required=True)
 
     args = parser.parse_args()
     print(args)
 
-    data_dirs = [Path(p) for p in args.data_dirs]
-    for data_dir in data_dirs:
+    # Setting rand seeds
+    seed = args.seed
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
+    if args.cpu:
+        device = 'cpu'
+    else:
+        device = torch.device(f'cuda:{args.device_id}' if torch.cuda.is_available() else "cpu")
+        torch.cuda.manual_seed(seed)
+
+    train_data_dirs = [Path(p) for p in args.train_data_dirs]
+    for data_dir in train_data_dirs:
+        assert data_dir.exists(), f'{str(data_dir)} does not exist.'
+
+    validation_data_dirs = [Path(p) for p in args.validation_data_dirs]
+    for data_dir in validation_data_dirs:
         assert data_dir.exists(), f'{str(data_dir)} does not exist.'
 
     log_dir = _get_log_dir(args)
+    writer = SummaryWriter(str(log_dir))
+    writer.add_text('args', str(args))
 
-    from albumentations import Compose
-    from albumentations import RandomCrop
+    input_size = args.input_size
 
-    transform = Compose([
-        RandomCrop(256, 256),
+    # Transforms
+    train_transform = Compose([
+        HorizontalFlip(p=0.5),
+        RandomCrop(*input_size),
+        Normalize(),
+    ])
+
+    validation_transform = Compose([
+        CenterCrop(*input_size),
+        Normalize(),
     ])
 
     is_binary = True
     category_type = SimpleCategory
-    dataset = SidewalkSegmentationDatasetFactory(
-        data_dirs,
+
+    # Train dataset and loader
+    train_dataset = SidewalkSegmentationDatasetFactory(
+        train_data_dirs,
         category_type,
-        transform,
+        train_transform,
         is_binary,
     )
+    train_loader = DataLoader(train_dataset, args.batch_size, shuffle=True)
 
-    train(
-        dataset,
-        epochs=args.epochs,
-        batch_size=args.batch_size,
-        validation_split=args.validation_split,
-        model_name=args.model_name,
-        debug=args.debug,
-        cpu=args.cpu,
-        log_dir=log_dir,
-        seed=args.seed,
-        device_id=args.device_id,
+    # Validation dataset and loader
+    validation_dataset = SidewalkSegmentationDatasetFactory(
+        validation_data_dirs,
+        category_type,
+        validation_transform,
+        is_binary,
     )
+    validation_loader = DataLoader(validation_dataset, args.batch_size, shuffle=False)
+
+    model_name = args.model_name
+    if model_name == 'unet11':
+        net = models.UNet11(pretrained=True)
+    else:
+        raise ValueError(model_name)
+
+    jaccard_weight = args.jaccard_weight
+    criterion = models.LossBinary(jaccard_weight)
+
+    optimizer = torch.optim.Adam(net.parameters())
+
+    train_params = dict(model_name=model_name)
+    eval_params = dict(jaccard_weight=jaccard_weight)
+
+    for epoch in range(1, args.epochs + 1):
+        print(f'epoch: {epoch:03d}')
+        sys.stdout.flush()
+        train(net, train_loader, epoch, optimizer, criterion, device, writer, train_params)
+        evaluate(net, validation_loader, epoch, writer, 'validation', eval_params)
 
 
 if __name__ == '__main__':

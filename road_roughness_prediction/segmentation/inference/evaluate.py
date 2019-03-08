@@ -3,11 +3,10 @@ import cv2
 import numpy as np
 
 import torch
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from torchvision.utils import make_grid
 
 from road_roughness_prediction.segmentation import models
+from road_roughness_prediction.tools.torch import make_resized_grid
 
 
 def load_image(path):
@@ -47,7 +46,8 @@ def evaluate(net, loader: DataLoader, epoch=None, device=None, writer=None, grou
     loss /= len(loader.dataset)
     print(f'{group} loss: {loss:.4f}')
 
-    n_save = 8
+    n_save = 16
+    size = 256
 
     # First epoch
     if epoch == 1 and writer:
@@ -62,15 +62,15 @@ def evaluate(net, loader: DataLoader, epoch=None, device=None, writer=None, grou
         writer.add_images(f'{group}/images', images/255, epoch, dataformats='NHWC')
         writer.add_images(f'{group}/masks', masks/255, epoch, dataformats='NHWC')
 
-        x_save = make_grid(X_, normalize=True)
+        x_save = make_resized_grid(X_, size=size, normalize=True)
         writer.add_image(f'{group}/inputs', x_save, epoch)
 
-        y_save = make_grid(Y_, normalize=True)
+        y_save = make_resized_grid(Y_, size=size, normalize=True)
         writer.add_image(f'{group}/targets', y_save, epoch)
 
     # Every epoch
     if writer:
         writer.add_scalar(f'{group}/loss', loss, epoch)
         out_ = first_out[:n_save, :, :, :]
-        out_save = make_grid(out_, normalize=True)
+        out_save = make_resized_grid(out_, size=size, normalize=True)
         writer.add_image(f'{group}/outputs', out_save, epoch)

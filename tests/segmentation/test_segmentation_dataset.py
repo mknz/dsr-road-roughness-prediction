@@ -40,9 +40,9 @@ def test_transform():
     plt.imshow(mask)
     plt.show()
 
-    img, mask = dataset[0]
-    img = torch_tools.to_image(img)
-    mask = torch_tools.to_image(mask).squeeze()
+    data = dataset[0]
+    img = torch_tools.to_image(data['X'])
+    mask = torch_tools.to_image(data['Y']).squeeze()
 
     plt.subplot(1, 2, 1)
     plt.imshow(img)

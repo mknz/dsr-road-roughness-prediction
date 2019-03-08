@@ -9,7 +9,6 @@ from tqdm import tqdm
 import torch
 
 from torch.utils.data import DataLoader
-from torchvision.utils import make_grid
 
 from albumentations import Compose
 from albumentations import RandomCrop
@@ -23,6 +22,7 @@ from road_roughness_prediction.segmentation.datasets import SidewalkSegmentation
 from road_roughness_prediction.segmentation.datasets.surface_types import SimpleCategory
 from road_roughness_prediction.segmentation import models
 from road_roughness_prediction.segmentation.inference import evaluate
+from road_roughness_prediction.tools.torch import make_resized_grid
 
 
 def train(net, loader, epoch, optimizer, criterion, device, writer, params={}):
@@ -53,8 +53,8 @@ def train(net, loader, epoch, optimizer, criterion, device, writer, params={}):
     writer.add_scalar('train/loss', total_loss, epoch)
 
     # Record first batch output
-    n_save = 8
-    out_save = make_grid(first_out[:n_save, :, :, :], normalize=True)
+    n_save = 16
+    out_save = make_resized_grid(first_out[:n_save, :, :, :], size=256, normalize=True)
     writer.add_image('train/outputs', out_save, epoch)
 
     # Save model

@@ -14,5 +14,5 @@ def to_image(tensor: torch.Tensor):
 
 
 def make_resized_grid(tensor: torch.Tensor, size, normalize=False) -> torch.Tensor:
-    grid = make_grid(tensor)
+    grid = make_grid(tensor, normalize=normalize)
     return to_tensor(resize(to_pil_image(grid), size))

@@ -4,8 +4,8 @@ import subprocess
 import shutil
 import tempfile
 
-from road_roughness_prediction.config import Config
-from road_roughness_prediction.datasets.transformations import TransformType
+from road_roughness_prediction.classification.config import Config
+from road_roughness_prediction.classification.datasets.transformations import TransformType
 
 
 class TestTraining:
@@ -19,7 +19,7 @@ class TestTraining:
 
     args = [
         'python3',
-        'scripts/train.py',
+        'scripts/classification/train.py',
         '--data-dir', str(image_dir),
         '--target-dir-name', 'ready',
         '--batch-size', '128',

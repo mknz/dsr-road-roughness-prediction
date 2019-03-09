@@ -8,12 +8,12 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from road_roughness_prediction.config import Config
-from road_roughness_prediction import models
-from road_roughness_prediction.datasets import SurfaceCategoryDatasetFactory
-from road_roughness_prediction.datasets.transformations import TransformFactory
-from road_roughness_prediction.datasets.transformations import TransformType
-from road_roughness_prediction.training import evaluate
+from road_roughness_prediction.classification.config import Config
+from road_roughness_prediction.classification import models
+from road_roughness_prediction.classification.datasets import SurfaceCategoryDatasetFactory
+from road_roughness_prediction.classification.datasets.transformations import TransformFactory
+from road_roughness_prediction.classification.datasets.transformations import TransformType
+from road_roughness_prediction.classification.inference import evaluate
 
 
 np.set_printoptions(precision=4)

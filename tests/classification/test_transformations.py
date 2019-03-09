@@ -7,8 +7,8 @@ from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 
-from road_roughness_prediction.config import Config
-from road_roughness_prediction.datasets.transformations import TransformFactory
+from road_roughness_prediction.classification.config import Config
+from road_roughness_prediction.classification.datasets.transformations import TransformFactory
 
 
 def _get_images(paths):

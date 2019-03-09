@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 import road_roughness_prediction.tools.accelerometer as acc
 
-TEST_DATA_PATH = './tests/one_second_flip.txt'
+TEST_DATA_PATH = './tests/resources/accelerometer/one_second_flip.txt'
 
 
 @pytest.mark.interactive

@@ -5,14 +5,13 @@
 ## Run all tests
 
 ```
-export PYTHONPATH=$PWD
-pytest tests
+python -m pytest tests
 ```
 
-## Run interactive tests (show some images)
+## Run interactive tests (This shows some images)
 
 ```
-pytest --interactive tests
+python -m pytest tests --interactive
 ```
 
 ## See training logs using tensorboard

@@ -12,7 +12,7 @@ class TestTraining:
     image_dir = Path('tests/resources/segmentation/labelme')
     args = [
         'python3',
-        'scripts/segmentation/train.py',
+        'train_seg.py',
         '--train-data-dirs', str(image_dir), str(image_dir),  str(image_dir),
         '--validation-data-dirs', str(image_dir), str(image_dir),  str(image_dir),
         '--input-size', '64', '64',

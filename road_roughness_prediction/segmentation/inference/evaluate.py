@@ -57,6 +57,7 @@ def evaluate(
 
     n_save = 16
     size = 256
+    category_type = loader.dataset.category_type
     n_class = len(category_type)
 
     # First epoch

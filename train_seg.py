@@ -18,11 +18,14 @@ from albumentations import Normalize
 
 from tensorboardX import SummaryWriter
 
+import matplotlib.pyplot as plt
+
 from road_roughness_prediction.segmentation.datasets import SidewalkSegmentationDatasetFactory
-from road_roughness_prediction.segmentation.datasets.surface_types import SimpleCategory
+import road_roughness_prediction.segmentation.datasets.surface_types as surface_types
 from road_roughness_prediction.segmentation import models
 from road_roughness_prediction.segmentation.inference import evaluate
 from road_roughness_prediction.tools.torch import make_resized_grid
+from road_roughness_prediction.tools.torch import get_segmentated_images_tensor
 
 
 def train(net, loader, epoch, optimizer, criterion, device, writer, model_name):
@@ -52,10 +55,15 @@ def train(net, loader, epoch, optimizer, criterion, device, writer, model_name):
     # Record loss
     writer.add_scalar('train/loss', total_loss, epoch)
 
-    # Record first batch output
     n_save = 16
-    out_save = make_resized_grid(first_out[:n_save, :, :, :], size=256, normalize=True)
-    writer.add_image('train/outputs', out_save, epoch)
+    size = 256
+    category_type = loader.dataset.category_type
+    if category_type == surface_types.BinaryCategory:
+        save_img = make_resized_grid(first_out[:n_save, :, :], size=size, normalize=True)
+    else:
+        segmented = get_segmentated_images_tensor(first_out[:n_save, :, :, :], dim=0)
+        save_img = make_resized_grid(segmented, size=size, normalize=False)
+    writer.add_image('train/outputs', save_img, epoch)
 
     # Save model
     save_path = Path(writer.log_dir) / f'{model_name}_dict_epoch_{epoch:03d}.pth'
@@ -79,6 +87,7 @@ def main():
     parser.add_argument('--validation-data-dirs', required=True, nargs='+')
     parser.add_argument('--save-dir', default='./runs')
     parser.add_argument('--cpu', action='store_true')
+    parser.add_argument('--category-type', default='binary', choices=['binary', 'simple'])
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--input-size', type=int, nargs=2, default=(640, 640))
     parser.add_argument('--jaccard-weight', type=float, default=0.3)
@@ -123,23 +132,22 @@ def main():
     train_transform = Compose([
         HorizontalFlip(p=0.5),
         RandomCrop(*input_size),
-        Normalize(),
     ])
 
     validation_transform = Compose([
         CenterCrop(*input_size),
-        Normalize(),
     ])
 
-    is_binary = True
-    category_type = SimpleCategory
+    if args.category_type == 'binary':
+        category_type = surface_types.BinaryCategory
+    elif args.category_type == 'simple':
+        category_type = surface_types.SimpleCategory
 
     # Train dataset and loader
     train_dataset = SidewalkSegmentationDatasetFactory(
         train_data_dirs,
         category_type,
         train_transform,
-        is_binary,
     )
     train_loader = DataLoader(train_dataset, args.batch_size, shuffle=True)
 
@@ -148,18 +156,23 @@ def main():
         validation_data_dirs,
         category_type,
         validation_transform,
-        is_binary,
     )
     validation_loader = DataLoader(validation_dataset, args.batch_size, shuffle=False)
 
     model_name = args.model_name
     if model_name == 'unet11':
-        net = models.UNet11(pretrained=True)
+        if category_type == surface_types.BinaryCategory:
+            net = models.UNet11(pretrained=True)
+        else:
+            net = models.UNet11(num_classes=len(category_type), pretrained=True)
     else:
         raise ValueError(model_name)
 
     jaccard_weight = args.jaccard_weight
-    criterion = models.LossBinary(jaccard_weight)
+    if category_type == surface_types.BinaryCategory:
+        criterion = models.loss.LossBinary(jaccard_weight)
+    else:
+        criterion = models.loss.LossMulti(jaccard_weight, num_classes=len(category_type))
 
     optimizer = torch.optim.Adam(net.parameters())
 

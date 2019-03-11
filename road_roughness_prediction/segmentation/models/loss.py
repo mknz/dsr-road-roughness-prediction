@@ -40,7 +40,7 @@ class LossMulti:
                 torch.from_numpy(class_weights.astype(np.float32)))
         else:
             nll_weight = None
-        self.nll_loss = nn.NLLLoss2d(weight=nll_weight)
+        self.nll_loss = nn.NLLLoss(weight=nll_weight)
         self.jaccard_weight = jaccard_weight
         self.num_classes = num_classes
 

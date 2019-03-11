@@ -27,6 +27,11 @@ class TestTraining:
         # Delete temp dir and all of its content
         shutil.rmtree(self.workdir)
 
-    def test_unet11(self):
+    def test_unet11_binary(self):
         args_ = self.args + ['--model-name', 'unet11']
-        subprocess.run(args_, check=True, timeout=120)
+        subprocess.run(args_, check=True, timeout=60)
+
+    def test_unet11_simple(self):
+        args_ = self.args + ['--model-name', 'unet11']
+        args_ += ['--category-type', 'simple']
+        subprocess.run(args_, check=True, timeout=60)

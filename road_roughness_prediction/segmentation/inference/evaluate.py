@@ -9,6 +9,9 @@ from albumentations.augmentations.functional import center_crop
 
 from road_roughness_prediction.segmentation import models
 from road_roughness_prediction.tools.torch import make_resized_grid
+from road_roughness_prediction.tools.torch import get_segmentated_image_tensor
+from road_roughness_prediction.tools.torch import get_segmentated_images_tensor
+import road_roughness_prediction.segmentation.datasets.surface_types as surface_types
 
 
 def _load_images(paths, size=256):
@@ -32,14 +35,18 @@ def evaluate(
     net.eval()
     loss = 0.
 
-    criterion = models.LossBinary(jaccard_weight)
+    category_type = loader.dataset.category_type
+    if category_type == surface_types.BinaryCategory:
+        criterion = models.loss.LossBinary(jaccard_weight)
+    else:
+        criterion = models.loss.LossMulti(jaccard_weight, num_classes=len(category_type))
+
     with torch.no_grad():
         for i, batch in enumerate(loader):
             X = batch['X']
             Y = batch['Y']
             X.to(device)
             Y.to(device)
-
             out = net.forward(X)
             loss += criterion(out, Y)
 
@@ -57,8 +64,6 @@ def evaluate(
     if epoch == 1 and writer:
         image_paths = first_batch['image_path'][:n_save]
         mask_paths = first_batch['mask_path'][:n_save]
-        X_ = first_batch['X'][:n_save, :, :, :]
-        Y_ = first_batch['Y'][:n_save, :, :]
 
         images = _load_images(image_paths)
         masks = _load_images(mask_paths)
@@ -66,15 +71,39 @@ def evaluate(
         writer.add_images(f'{group}/images', images/255, epoch, dataformats='NHWC')
         writer.add_images(f'{group}/masks', masks/255, epoch, dataformats='NHWC')
 
+        # X: [n_batch, 3, height, width]
+        X_ = first_batch['X'][:n_save, :, :, :]
+
         x_save = make_resized_grid(X_, size=size, normalize=True)
         writer.add_image(f'{group}/inputs', x_save, epoch)
 
-        y_save = make_resized_grid(Y_, size=size, normalize=True)
+        Y_ = first_batch['Y'][:n_save, :, :]
+        if category_type == surface_types.BinaryCategory:
+            # Y: [n_batch, 1, height, width]
+            # Y is 0 or 1
+            y_save = make_resized_grid(Y_, size=size, normalize=True)
+        else:
+            # Y: [n_batch, height, width]
+            # Y is 0 to n_class - 1
+            images = []
+            for i in range(Y_.shape[0]):
+                images.append(get_segmentated_image_tensor(Y_[i, :, :]))
+
+            y_save = make_resized_grid(torch.stack(images), size=size, normalize=False)
+
         writer.add_image(f'{group}/targets', y_save, epoch)
 
     # Every epoch
     if writer:
         writer.add_scalar(f'{group}/loss', loss, epoch)
-        out_ = first_out[:n_save, :, :, :]
-        out_save = make_resized_grid(out_, size=size, normalize=True)
+        if category_type == surface_types.BinaryCategory:
+            # out:  [n_batch, height, width]
+            out_ = first_out[:n_save, :, :]
+            out_save = make_resized_grid(out_, size=size, normalize=True)
+        else:
+            # out:  [n_batch, n_class, height, width]
+            out_ = first_out[:n_save, :, :, :]
+            segmented = get_segmentated_images_tensor(out_, dim=0)
+            out_save = make_resized_grid(segmented, size=size, normalize=False)
+
         writer.add_image(f'{group}/outputs', out_save, epoch)

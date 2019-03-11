@@ -2,12 +2,16 @@
 from pathlib import Path
 from typing import List
 
+import torch
 from torch.utils.data import Dataset
-
 from torchvision.transforms.functional import to_tensor
+from albumentations.augmentations.functional import normalize
+from PIL import Image
 
 import numpy as np
-from PIL import Image
+
+from .surface_types import convert_mask
+from .surface_types import BinaryCategory
 
 
 class SidewalkSegmentationDataset(Dataset):
@@ -18,7 +22,6 @@ class SidewalkSegmentationDataset(Dataset):
             mask_paths,
             category_type,
             transform,
-            is_binary,
     ) -> None:
         '''
         Args:
@@ -26,7 +29,6 @@ class SidewalkSegmentationDataset(Dataset):
             mask_paths (List[Path])             : mask paths
             category_type (SurfaceCategoryBase) : Category type
             transform                           : Transformation
-            is_binary                           :
         '''
         assert image_paths, 'Image paths are empty'
         assert mask_paths, 'mask paths are empty'
@@ -36,7 +38,6 @@ class SidewalkSegmentationDataset(Dataset):
         self.mask_paths = mask_paths
         self.category_type = category_type
         self._transform = transform
-        self.is_binary = is_binary
 
     def __len__(self):
         return len(self.image_paths)
@@ -49,20 +50,28 @@ class SidewalkSegmentationDataset(Dataset):
         image = np.array(image).astype(np.uint8)
 
         mask = np.array(Image.open(mask_path)).astype(np.uint8)
-
-        if self.is_binary:
-            for category in self.category_type:
-                if category.name == 'BACKGROUND':
-                    mask[mask == category.value] = 0
-                else:
-                    mask[mask == category.value] = 255
+        mask = convert_mask(mask, self.category_type)
 
         data = {'image': image, 'mask': mask}
         augmented = self._transform(**data)
         image, mask = augmented['image'], augmented['mask']
+
+        # Imagenet params
+        image = normalize(
+            image,
+            mean=(0.485, 0.456, 0.406),
+            std=(0.229, 0.224, 0.225),
+        )
+
+        X = to_tensor(image)
+        if self.category_type == BinaryCategory:
+            Y = torch.from_numpy(mask).float().unsqueeze(0)
+        else:
+            Y = torch.from_numpy(mask).long()
+
         return dict(
-            X=to_tensor(image),
-            Y=to_tensor(mask),
+            X=X,
+            Y=Y,
             image_path=str(image_path),
             mask_path=str(mask_path),
         )
@@ -86,7 +95,6 @@ class SidewalkSegmentationDatasetFactory:
             directories: List[Path],
             category_type,
             transform,
-            is_binary
     ):
 
         image_paths = []
@@ -105,5 +113,4 @@ class SidewalkSegmentationDatasetFactory:
             mask_paths,
             category_type,
             transform,
-            is_binary,
         )

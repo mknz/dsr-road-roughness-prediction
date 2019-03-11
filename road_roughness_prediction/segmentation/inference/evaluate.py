@@ -59,6 +59,7 @@ def evaluate(
 
     n_save = 16
     size = 256
+    n_class = len(category_type)
 
     # First epoch
     if epoch == 1 and writer:
@@ -87,7 +88,8 @@ def evaluate(
             # Y is 0 to n_class - 1
             images = []
             for i in range(Y_.shape[0]):
-                images.append(get_segmentated_image_tensor(Y_[i, :, :]))
+                Y_norm = Y_[i, :, :].float() / (n_class - 1)   # Normalize 0 to 1
+                images.append(get_segmentated_image_tensor(Y_norm))
 
             y_save = make_resized_grid(torch.stack(images), size=size, normalize=False)
 

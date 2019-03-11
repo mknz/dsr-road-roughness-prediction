@@ -20,7 +20,9 @@ def to_image(tensor: torch.Tensor):
 def get_segmentated_images_tensor(tensor: torch.Tensor, dim) -> torch.Tensor:
     tensors = []
     for i in range(tensor.shape[0]):
-        segmented = tensor[i, :, :, :].argmax(dim=dim)
+        n_class = tensor.shape[dim]
+        segmented = tensor[i, :, :, :].argmax(dim=dim).float()
+        segmented /= n_class - 1  # normalize 0 to 1
         tensors.append(get_segmentated_image_tensor(segmented))
     return torch.stack(tensors)
 

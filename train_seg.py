@@ -180,7 +180,7 @@ def main():
         print(f'epoch: {epoch:03d}')
         sys.stdout.flush()
         train(net, train_loader, epoch, optimizer, criterion, device, writer, model_name)
-        evaluate(net, validation_loader, epoch, device, writer, 'validation', jaccard_weight)
+        evaluate(net, validation_loader, epoch, criterion, device, writer, 'validation', jaccard_weight)
 
 
 if __name__ == '__main__':

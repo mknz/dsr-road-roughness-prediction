@@ -24,22 +24,17 @@ def _load_images(paths, size=256):
 def evaluate(
         net,
         loader: DataLoader,
-        epoch=None,
-        device=None,
-        writer=None,
-        group=None,
+        epoch,
+        criterion,
+        device,
+        writer,
+        group,
         jaccard_weight=0.2
 ):
     '''Evaluate trained model, optionally write result using TensorboardX'''
 
     net.eval()
     loss = 0.
-
-    category_type = loader.dataset.category_type
-    if category_type == surface_types.BinaryCategory:
-        criterion = models.loss.LossBinary(jaccard_weight)
-    else:
-        criterion = models.loss.LossMulti(jaccard_weight, num_classes=len(category_type))
 
     with torch.no_grad():
         for i, batch in enumerate(loader):
@@ -48,14 +43,17 @@ def evaluate(
             X.to(device)
             Y.to(device)
             out = net.forward(X)
-            loss += criterion(out, Y)
+
+            if criterion:
+                loss += criterion(out, Y)
 
             if i == 0:
                 first_out = out
                 first_batch = batch
 
-    loss /= len(loader.dataset)
-    print(f'{group} loss: {loss:.4f}')
+    if criterion:
+        loss /= len(loader.dataset)
+        print(f'{group} loss: {loss:.4f}')
 
     n_save = 16
     size = 256

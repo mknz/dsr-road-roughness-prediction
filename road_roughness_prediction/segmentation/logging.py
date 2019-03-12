@@ -1,23 +1,20 @@
-from pathlib import Path
+'''Logging'''
 from typing import List
 
 import numpy as np
 
-from torchvision.transforms.functional import center_crop
 from torchvision.transforms.functional import resize
 from torchvision.transforms.functional import to_pil_image
 from torchvision.transforms.functional import to_tensor
 from torchvision.utils import make_grid
 
 import cv2
-
-import matplotlib.pyplot as plt
+from PIL import Image
 
 import torch
 from tensorboardX import SummaryWriter
 
-from road_roughness_prediction.tools.image_utils import fig_to_pil
-import road_roughness_prediction.segmentation.datasets.surface_types as surface_types
+from road_roughness_prediction.segmentation.datasets import surface_types
 
 
 class Logger:
@@ -29,26 +26,31 @@ class Logger:
         self.category_type = category_type
         self.is_binary = category_type == surface_types.BinaryCategory
         self.n_class = len(category_type)
+        self.cmap = np.array(surface_types.COLORMAP)
 
     def add_output(self, tag, out_tensor, global_steps=None):
-
         if self.is_binary:
             # out:  [n_batch, height, width]
             out_ = out_tensor[:self.n_save, :, :]
             save_img = make_resized_grid(out_, size=self.image_size, normalize=True)
+            self.writer.add_image(tag, save_img, global_steps)
         else:
             # out:  [n_batch, n_class, height, width]
             out_ = out_tensor[:self.n_save, :, :, :]
-            segmented = get_segmentated_images_tensor(out_, dim=0)
-            save_img = make_resized_grid(segmented, size=self.image_size, normalize=False)
+            segmented = out_.argmax(1)
+            out_rgb = self._to_rgb(segmented)
+            self.add_resized_images(tag, out_rgb, global_steps)
 
-        self.writer.add_image(tag, save_img, global_steps)
+    def add_resized_images(self, tag, tensor, global_steps):
+        for i in range(tensor.shape[0]):
+            img = tensor[i, :, :, :]  # (N, C, H, W)
+            resized = resize_image_tensor(img, self.image_size)
+            self.writer.add_image(f'{tag}/{i:00d}', resized, global_steps, dataformats='HWC')
 
     def add_input(self, tag, input_tensor, global_steps=None):
         # X: [n_batch, 3, height, width]
         X_ = input_tensor[:self.n_save, :, :, :]
-        x_save = make_resized_grid(X_, size=self.image_size, normalize=True)
-        self.writer.add_image(tag, x_save, global_steps)
+        self.add_resized_images(tag, normalize(X_), global_steps)
 
     def add_target(self, tag, target_tensor, global_steps=None):
         if self.is_binary:
@@ -56,44 +58,42 @@ class Logger:
             # Y is 0 or 1
             Y_ = target_tensor[:self.n_save, :, :, :]
             y_save = make_resized_grid(Y_, size=self.image_size, normalize=True)
+            self.writer.add_image(tag, y_save, global_steps)
         else:
             # Y: [n_batch, height, width]
             # Y is 0 to n_class - 1
             Y_ = target_tensor[:self.n_save, :, :]
-            images = []
-            for i in range(Y_.shape[0]):
-                Y_norm = Y_[i, :, :].float() / (self.n_class - 1)   # Normalize 0 to 1
-                images.append(get_segmentated_image_tensor(Y_norm))
+            y_rgb = self._to_rgb(Y_)
+            self.add_resized_images(tag, y_rgb, global_steps)
 
-            y_save = make_resized_grid(torch.stack(images), size=self.image_size, normalize=False)
-
-        self.writer.add_image(tag, y_save, global_steps)
+    def _to_rgb(self, tensor):
+        '''(N, H, W) -> (N, 3, H, W)'''
+        y_rgb = self.cmap[tensor]
+        return torch.Tensor(y_rgb).permute(0, 3, 1, 2)
 
     def add_images_from_path(self, tag, paths: List[str], global_steps=None):
         '''Image sizes can be different'''
         for i, path in enumerate(paths[:self.n_save]):
-            image = _load_image(path)
-            self.writer.add_image(f'{tag}/{i:00d}', image/255, global_steps, dataformats='HWC')
+            image = np.array(Image.open(path))
+            resized = resize_pil_image(image)
+            self.writer.add_image(f'{tag}/{i:00d}', resized / 255, global_steps, dataformats='HWC')
+
+    def add_masks_from_path(self, tag, paths: List[str], global_steps=None):
+        '''Image sizes can be different'''
+        for i, path in enumerate(paths[:self.n_save]):
+            mask = np.array(Image.open(path))
+            mask_ = surface_types.convert_mask(mask, self.category_type)
+            image_rgb = self.cmap[mask_]
+            resized = resize_pil_image(image_rgb)
+            self.writer.add_image(f'{tag}/{i:00d}', resized, global_steps, dataformats='HWC')
 
 
-def get_segmentated_images_tensor(tensor: torch.Tensor, dim) -> torch.Tensor:
-    tensors = []
-    n_class = tensor.shape[1]
-    for i in range(tensor.shape[0]):
-        segmented = tensor[i, :, :, :].argmax(dim=dim).float()
-        segmented /= n_class - 1  # normalize 0 to 1
-        tensors.append(get_segmentated_image_tensor(segmented))
-    return torch.stack(tensors)
-
-
-def get_segmentated_image_tensor(tensor: torch.Tensor) -> torch.Tensor:
-    fig = plt.figure()
-    plt.imshow(tensor.numpy(), figure=fig, cmap='jet', vmin=0., vmax=1.)
-    plt.axis('off')
-    plt.tight_layout()
-    pil_image = fig_to_pil(fig).convert(mode='RGB')
-    plt.close()
-    return to_tensor(pil_image)
+def normalize(tensor):
+    '''Normalize to 0 -1'''
+    tensor_ = tensor.clone()
+    tensor_ -= tensor_.min()
+    tensor_ /= tensor_.max()
+    return tensor_
 
 
 def make_resized_grid(tensor: torch.Tensor, size, normalize=False) -> torch.Tensor:
@@ -104,11 +104,15 @@ def make_resized_grid(tensor: torch.Tensor, size, normalize=False) -> torch.Tens
     return grid_tensor
 
 
-def _load_image(path, target_height=128):
-    img = cv2.imread(path)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+def resize_pil_image(img: np.array, target_height=128):
     h, w, _ = img.shape
     factor = target_height / h
     new_h, new_w = int(h * factor), int(w * factor)
     resized = cv2.resize(img, (new_w, new_h))
     return resized
+
+
+def resize_image_tensor(img: torch.Tensor, target_height=128) -> np.array:
+    # (C, H, W) -> (H, W, C)
+    img_ = img.permute(1, 2, 0).numpy()
+    return resize_pil_image(img_, target_height=target_height)

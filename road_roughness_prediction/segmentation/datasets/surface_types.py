@@ -1,5 +1,10 @@
 '''Surface category type definition'''
 from enum import Enum
+from enum import unique
+
+import numpy as np
+
+from matplotlib import cm
 
 
 class SurfaceCategoryBase(Enum):
@@ -14,11 +19,13 @@ class SurfaceCategoryBase(Enum):
         return [x.name.lower() for x in cls]
 
 
+@unique
 class BinaryCategory(SurfaceCategoryBase):
     BACKGROUND = 0
     SIDEWALK = 1
 
 
+@unique
 class SimpleRawCategory(SurfaceCategoryBase):
     '''Surface category segmentation label index.
     NOTE: Do not use SIDEWALK label defined here.'''
@@ -33,6 +40,7 @@ class SimpleRawCategory(SurfaceCategoryBase):
     BICYCLE_TILES = 8
 
 
+@unique
 class SimpleCategory(SurfaceCategoryBase):
     BACKGROUND = 0
     ASPHALT = 1
@@ -42,6 +50,9 @@ class SimpleCategory(SurfaceCategoryBase):
     PAVING_STONES = 5
     SETT = 6
     BICYCLE_TILES = 7
+
+
+COLORMAP = cm.jet(np.linspace(0, 255, 8).astype(np.uint8))[:, :3]
 
 
 def convert_mask(mask, category_type):

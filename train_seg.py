@@ -49,7 +49,7 @@ def train(net, loader, epoch, optimizer, criterion, device, logger, model_name):
     logger.writer.add_scalar('train/loss', total_loss, epoch)
 
     # Record output
-    logger.add_output('train/outputs', first_out)
+    logger.add_output('train/outputs', first_out, epoch)
 
     # Save model
     save_path = Path(logger.writer.log_dir) / f'{model_name}_dict_epoch_{epoch:03d}.pth'

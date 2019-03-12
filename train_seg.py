@@ -14,21 +14,15 @@ from albumentations import Compose
 from albumentations import RandomCrop
 from albumentations import CenterCrop
 from albumentations import HorizontalFlip
-from albumentations import Normalize
-
-from tensorboardX import SummaryWriter
-
-import matplotlib.pyplot as plt
 
 from road_roughness_prediction.segmentation.datasets import SidewalkSegmentationDatasetFactory
-import road_roughness_prediction.segmentation.datasets.surface_types as surface_types
+from road_roughness_prediction.segmentation.datasets import surface_types
 from road_roughness_prediction.segmentation import models
 from road_roughness_prediction.segmentation.inference import evaluate
-from road_roughness_prediction.tools.torch import make_resized_grid
-from road_roughness_prediction.tools.torch import get_segmentated_images_tensor
+from road_roughness_prediction.segmentation import logging
 
 
-def train(net, loader, epoch, optimizer, criterion, device, writer, model_name):
+def train(net, loader, epoch, optimizer, criterion, device, logger, model_name):
     total_loss = 0.
     net.train()
     for i, batch in enumerate(tqdm(loader)):
@@ -46,27 +40,19 @@ def train(net, loader, epoch, optimizer, criterion, device, writer, model_name):
 
         total_loss += loss.item()
         if i == 0:
-            first_batch = batch
             first_out = out
 
     total_loss /= len(loader.dataset)
     print(f'train loss: {total_loss:.4f}')
 
     # Record loss
-    writer.add_scalar('train/loss', total_loss, epoch)
+    logger.writer.add_scalar('train/loss', total_loss, epoch)
 
-    n_save = 16
-    size = 256
-    category_type = loader.dataset.category_type
-    if category_type == surface_types.BinaryCategory:
-        save_img = make_resized_grid(first_out[:n_save, :, :], size=size, normalize=True)
-    else:
-        segmented = get_segmentated_images_tensor(first_out[:n_save, :, :, :], dim=0)
-        save_img = make_resized_grid(segmented, size=size, normalize=False)
-    writer.add_image('train/outputs', save_img, epoch)
+    # Record output
+    logger.add_output('train/outputs', first_out)
 
     # Save model
-    save_path = Path(writer.log_dir) / f'{model_name}_dict_epoch_{epoch:03d}.pth'
+    save_path = Path(logger.writer.log_dir) / f'{model_name}_dict_epoch_{epoch:03d}.pth'
     torch.save(net.state_dict(), str(save_path))
 
 
@@ -122,10 +108,6 @@ def main():
     for data_dir in validation_data_dirs:
         assert data_dir.exists(), f'{str(data_dir)} does not exist.'
 
-    log_dir = _get_log_dir(args)
-    writer = SummaryWriter(str(log_dir))
-    writer.add_text('args', str(args))
-
     input_size = args.input_size
 
     # Transforms
@@ -142,6 +124,11 @@ def main():
         category_type = surface_types.BinaryCategory
     elif args.category_type == 'simple':
         category_type = surface_types.SimpleCategory
+
+    # Logger
+    log_dir = _get_log_dir(args)
+    logger = logging.Logger(log_dir, n_save=16, image_size=256, category_type=category_type)
+    logger.writer.add_text('args', str(args))
 
     # Train dataset and loader
     train_dataset = SidewalkSegmentationDatasetFactory(
@@ -179,8 +166,8 @@ def main():
     for epoch in range(1, args.epochs + 1):
         print(f'epoch: {epoch:03d}')
         sys.stdout.flush()
-        train(net, train_loader, epoch, optimizer, criterion, device, writer, model_name)
-        evaluate(net, validation_loader, epoch, criterion, device, writer, 'validation', jaccard_weight)
+        train(net, train_loader, epoch, optimizer, criterion, device, logger, model_name)
+        evaluate(net, validation_loader, epoch, criterion, device, logger, 'validation')
 
 
 if __name__ == '__main__':

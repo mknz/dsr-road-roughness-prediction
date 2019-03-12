@@ -1,4 +1,4 @@
-'''Logging'''
+'''Logging module'''
 from typing import List
 
 import numpy as np
@@ -10,6 +10,8 @@ from torchvision.utils import make_grid
 
 import cv2
 from PIL import Image
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 
 import torch
 from tensorboardX import SummaryWriter
@@ -28,6 +30,23 @@ class Logger:
         self.n_class = len(category_type)
         self.cmap = np.array(surface_types.COLORMAP)
 
+        self._save_legend()
+
+    def _save_legend(self):
+        '''Save legend figure'''
+        patches = [
+            mpatches.Patch(
+                color=surface_types.COLORMAP[category.value],
+                label=category.name
+            )
+            for category in self.category_type
+        ]
+        fig = plt.figure(figsize=(2, 4))
+        fig.legend(handles=patches, loc='center')
+        fig.tight_layout()
+        self.writer.add_figure('legend', fig)
+
+
     def add_output(self, tag, out_tensor, global_steps=None):
         if self.is_binary:
             # out:  [n_batch, height, width]
@@ -45,7 +64,7 @@ class Logger:
         for i in range(tensor.shape[0]):
             img = tensor[i, :, :, :]  # (N, C, H, W)
             resized = resize_image_tensor(img, self.image_size)
-            self.writer.add_image(f'{tag}/{i:00d}', resized, global_steps, dataformats='HWC')
+            self.writer.add_image(f'{tag}/{i:03d}', resized, global_steps, dataformats='HWC')
 
     def add_input(self, tag, input_tensor, global_steps=None):
         # X: [n_batch, 3, height, width]
@@ -76,7 +95,7 @@ class Logger:
         for i, path in enumerate(paths[:self.n_save]):
             image = np.array(Image.open(path))
             resized = resize_pil_image(image)
-            self.writer.add_image(f'{tag}/{i:00d}', resized / 255, global_steps, dataformats='HWC')
+            self.writer.add_image(f'{tag}/{i:03d}', resized / 255, global_steps, dataformats='HWC')
 
     def add_masks_from_path(self, tag, paths: List[str], global_steps=None):
         '''Image sizes can be different'''
@@ -85,11 +104,11 @@ class Logger:
             mask_ = surface_types.convert_mask(mask, self.category_type)
             image_rgb = self.cmap[mask_]
             resized = resize_pil_image(image_rgb)
-            self.writer.add_image(f'{tag}/{i:00d}', resized, global_steps, dataformats='HWC')
+            self.writer.add_image(f'{tag}/{i:03d}', resized, global_steps, dataformats='HWC')
 
 
 def normalize(tensor):
-    '''Normalize to 0 -1'''
+    '''Normalize to 0 - 1'''
     tensor_ = tensor.clone()
     tensor_ -= tensor_.min()
     tensor_ /= tensor_.max()

@@ -47,13 +47,12 @@ class LossMulti:
     def __call__(self, outputs, targets):
         loss = (1 - self.jaccard_weight) * self.nll_loss(outputs, targets)
 
-        if self.jaccard_weight:
-            eps = 1e-15
-            for cls in range(self.num_classes):
-                jaccard_target = (targets == cls).float()
-                jaccard_output = outputs[:, cls].exp()
-                intersection = (jaccard_output * jaccard_target).sum()
+        eps = 1e-15
+        for cls in range(self.num_classes):
+            jaccard_target = (targets == cls).float()
+            jaccard_output = outputs[:, cls].exp()
+            intersection = (jaccard_output * jaccard_target).sum()
 
-                union = jaccard_output.sum() + jaccard_target.sum()
-                loss -= torch.log((intersection + eps) / (union - intersection + eps)) * self.jaccard_weight
-            return loss
+            union = jaccard_output.sum() + jaccard_target.sum()
+            loss -= torch.log((intersection + eps) / (union - intersection + eps)) * self.jaccard_weight
+        return loss

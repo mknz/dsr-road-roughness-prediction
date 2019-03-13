@@ -20,7 +20,6 @@ class TestTraining:
         '--epochs', '2',
         '--save-dir', str(workdir),
         '--run-name', 'test',
-        '--cpu',
     ]
 
     def teardown_class(self):

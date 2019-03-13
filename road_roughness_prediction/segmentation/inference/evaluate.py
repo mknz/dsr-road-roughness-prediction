@@ -29,8 +29,8 @@ def evaluate(
         for i, batch in enumerate(loader):
             X = batch['X']
             Y = batch['Y']
-            X.to(device)
-            Y.to(device)
+            X = X.to(device)
+            Y = Y.to(device)
             out = net.forward(X)
 
             if criterion:
@@ -48,10 +48,10 @@ def evaluate(
     if epoch == 1 and logger:
         logger.add_images_from_path(f'{group}/images', first_batch['image_path'])
         logger.add_masks_from_path(f'{group}/masks', first_batch['mask_path'])
-        logger.add_input(f'{group}/inputs', first_batch['X'])
-        logger.add_target(f'{group}/targets', first_batch['Y'])
+        logger.add_input(f'{group}/inputs', first_batch['X'].cpu())
+        logger.add_target(f'{group}/targets', first_batch['Y'].cpu())
 
     # Every epoch
     if logger:
         logger.writer.add_scalar(f'{group}/loss', loss, epoch)
-        logger.add_output(f'{group}/outputs', first_out, epoch)
+        logger.add_output(f'{group}/outputs', first_out.cpu(), epoch)

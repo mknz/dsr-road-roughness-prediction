@@ -22,14 +22,14 @@ from road_roughness_prediction.segmentation.inference import evaluate
 from road_roughness_prediction.segmentation import logging
 
 
-def train(net, loader, epoch, optimizer, criterion, device, logger, model_name):
+def train(net, loader, epoch, optimizer, criterion, device, logger):
     total_loss = 0.
     net.train()
     for i, batch in enumerate(tqdm(loader)):
         X = batch['X']
         Y = batch['Y']
-        X.to(device)
-        Y.to(device)
+        X = X.to(device)
+        Y = Y.to(device)
 
         optimizer.zero_grad()
         out = net.forward(X)
@@ -49,9 +49,11 @@ def train(net, loader, epoch, optimizer, criterion, device, logger, model_name):
     logger.writer.add_scalar('train/loss', total_loss, epoch)
 
     # Record output
-    logger.add_output('train/outputs', first_out, epoch)
+    logger.add_output('train/outputs', first_out.cpu(), epoch)
 
     # Save model
+
+    model_name = str(net).split('(')[0].lower()
     save_path = Path(logger.writer.log_dir) / f'{model_name}_dict_epoch_{epoch:03d}.pth'
     torch.save(net.state_dict(), str(save_path))
 
@@ -145,15 +147,7 @@ def main():
         validation_transform,
     )
     validation_loader = DataLoader(validation_dataset, args.batch_size, shuffle=False)
-
-    model_name = args.model_name
-    if model_name == 'unet11':
-        if category_type == surface_types.BinaryCategory:
-            net = models.UNet11(pretrained=True)
-        else:
-            net = models.UNet11(num_classes=len(category_type), pretrained=True)
-    else:
-        raise ValueError(model_name)
+    net = models.load_model(args.model_name, category_type).to(device)
 
     jaccard_weight = args.jaccard_weight
     if category_type == surface_types.BinaryCategory:
@@ -166,7 +160,7 @@ def main():
     for epoch in range(1, args.epochs + 1):
         print(f'epoch: {epoch:03d}')
         sys.stdout.flush()
-        train(net, train_loader, epoch, optimizer, criterion, device, logger, model_name)
+        train(net, train_loader, epoch, optimizer, criterion, device, logger)
         evaluate(net, validation_loader, epoch, criterion, device, logger, 'validation')
 
 

@@ -7,7 +7,8 @@ from road_roughness_prediction.tools import calc_plot_confusion_matrix
 
 
 def evaluate(net, loader: DataLoader, class_names,
-             epoch=None, writer=None, group=None, fig_save_path=None):
+             epoch=None, writer=None, group=None, fig_save_path=None,
+             device='cpu'):
     '''Evaluate trained model, optionally write result using TensorboardX'''
 
     n_class = len(class_names)
@@ -22,6 +23,9 @@ def evaluate(net, loader: DataLoader, class_names,
 
     with torch.no_grad():
         for X, labels in loader:
+            X = X.to(device)
+            labels = labels.to(device)
+
             outputs = net.forward(X)
             loss += F.cross_entropy(outputs, labels)
 

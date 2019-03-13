@@ -93,8 +93,8 @@ class Logger:
 
 def expand_to_rgb(tensor):
     '''(N, H, W) -> (N, 3, H, W)'''
-    y_rgb = surface_types.COLORMAP[tensor]
-    return torch.Tensor(y_rgb).permute(0, 3, 1, 2)
+    rgb = surface_types.COLORMAP[tensor]
+    return torch.Tensor(rgb).permute(0, 3, 1, 2)
 
 
 def create_legend_figure(category_type, figsize=(2, 4)):

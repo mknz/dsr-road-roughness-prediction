@@ -34,18 +34,8 @@ class Logger:
 
     def _save_legend(self):
         '''Save legend figure'''
-        patches = [
-            mpatches.Patch(
-                color=surface_types.COLORMAP[category.value],
-                label=category.name
-            )
-            for category in self.category_type
-        ]
-        fig = plt.figure(figsize=(2, 4))
-        fig.legend(handles=patches, loc='center')
-        fig.tight_layout()
+        fig = create_legend_figure(self.category_type)
         self.writer.add_figure('legend', fig)
-
 
     def add_output(self, tag, out_tensor, global_steps=None):
         if self.is_binary:
@@ -105,6 +95,21 @@ class Logger:
             image_rgb = self.cmap[mask_]
             resized = resize_pil_image(image_rgb)
             self.writer.add_image(f'{tag}/{i:03d}', resized, global_steps, dataformats='HWC')
+
+
+def create_legend_figure(category_type, figsize=(2, 4)):
+    '''Save legend figure'''
+    patches = [
+        mpatches.Patch(
+            color=surface_types.COLORMAP[category.value],
+            label=category.name
+        )
+        for category in category_type
+    ]
+    fig = plt.figure(figsize=figsize)
+    fig.legend(handles=patches, loc='center')
+    fig.tight_layout()
+    return fig
 
 
 def normalize(tensor):

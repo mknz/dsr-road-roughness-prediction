@@ -1,14 +1,7 @@
 '''Evaluation module'''
-import cv2
-import numpy as np
 
 import torch
 from torch.utils.data import DataLoader
-
-from albumentations.augmentations.functional import center_crop
-
-from road_roughness_prediction.segmentation import models
-import road_roughness_prediction.segmentation.datasets.surface_types as surface_types
 
 
 def evaluate(

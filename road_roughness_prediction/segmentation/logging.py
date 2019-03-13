@@ -28,7 +28,6 @@ class Logger:
         self.category_type = category_type
         self.is_binary = category_type == surface_types.BinaryCategory
         self.n_class = len(category_type)
-        self.cmap = np.array(surface_types.COLORMAP)
 
         self._save_legend()
 
@@ -47,7 +46,7 @@ class Logger:
             # out:  [n_batch, n_class, height, width]
             out_ = out_tensor[:self.n_save, :, :, :]
             segmented = out_.argmax(1)
-            out_rgb = self._to_rgb(segmented)
+            out_rgb = expand_to_rgb(segmented)
             self.add_resized_images(tag, out_rgb, global_steps)
 
     def add_resized_images(self, tag, tensor, global_steps):
@@ -72,13 +71,8 @@ class Logger:
             # Y: [n_batch, height, width]
             # Y is 0 to n_class - 1
             Y_ = target_tensor[:self.n_save, :, :]
-            y_rgb = self._to_rgb(Y_)
+            y_rgb = expand_to_rgb(Y_)
             self.add_resized_images(tag, y_rgb, global_steps)
-
-    def _to_rgb(self, tensor):
-        '''(N, H, W) -> (N, 3, H, W)'''
-        y_rgb = self.cmap[tensor]
-        return torch.Tensor(y_rgb).permute(0, 3, 1, 2)
 
     def add_images_from_path(self, tag, paths: List[str], global_steps=None):
         '''Image sizes can be different'''
@@ -92,9 +86,15 @@ class Logger:
         for i, path in enumerate(paths[:self.n_save]):
             mask = np.array(Image.open(path))
             mask_ = surface_types.convert_mask(mask, self.category_type)
-            image_rgb = self.cmap[mask_]
+            image_rgb = surface_types.COLORMAP[mask_]
             resized = resize_pil_image(image_rgb)
             self.writer.add_image(f'{tag}/{i:03d}', resized, global_steps, dataformats='HWC')
+
+
+def expand_to_rgb(tensor):
+    '''(N, H, W) -> (N, 3, H, W)'''
+    y_rgb = surface_types.COLORMAP[tensor]
+    return torch.Tensor(y_rgb).permute(0, 3, 1, 2)
 
 
 def create_legend_figure(category_type, figsize=(2, 4)):

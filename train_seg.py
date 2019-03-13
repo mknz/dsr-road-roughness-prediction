@@ -20,6 +20,7 @@ from road_roughness_prediction.segmentation.datasets import surface_types
 from road_roughness_prediction.segmentation import models
 from road_roughness_prediction.segmentation.inference import evaluate
 from road_roughness_prediction.segmentation import logging
+import road_roughness_prediction.tools.torch as torch_tools
 
 
 def train(net, loader, epoch, optimizer, criterion, device, logger):
@@ -52,7 +53,6 @@ def train(net, loader, epoch, optimizer, criterion, device, logger):
     logger.add_output('train/outputs', first_out.cpu(), epoch)
 
     # Save model
-
     model_name = str(net).split('(')[0].lower()
     save_path = Path(logger.writer.log_dir) / f'{model_name}_dict_epoch_{epoch:03d}.pth'
     torch.save(net.state_dict(), str(save_path))
@@ -91,16 +91,8 @@ def main():
     args = parser.parse_args()
     print(args)
 
-    # Setting rand seeds
-    seed = args.seed
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-
-    if args.cpu:
-        device = 'cpu'
-    else:
-        device = torch.device(f'cuda:{args.device_id}' if torch.cuda.is_available() else "cpu")
-        torch.cuda.manual_seed(seed)
+    device = torch_tools.get_device(args.cpu, args.device_id)
+    torch_tools.set_seeds(args.seed, device)
 
     train_data_dirs = [Path(p) for p in args.train_data_dirs]
     for data_dir in train_data_dirs:
@@ -122,10 +114,7 @@ def main():
         CenterCrop(*input_size),
     ])
 
-    if args.category_type == 'binary':
-        category_type = surface_types.BinaryCategory
-    elif args.category_type == 'simple':
-        category_type = surface_types.SimpleCategory
+    category_type = surface_types.from_string(args.category_type)
 
     # Logger
     log_dir = _get_log_dir(args)
@@ -149,12 +138,7 @@ def main():
     validation_loader = DataLoader(validation_dataset, args.batch_size, shuffle=False)
     net = models.load_model(args.model_name, category_type).to(device)
 
-    jaccard_weight = args.jaccard_weight
-    if category_type == surface_types.BinaryCategory:
-        criterion = models.loss.LossBinary(jaccard_weight)
-    else:
-        criterion = models.loss.LossMulti(jaccard_weight, num_classes=len(category_type))
-
+    criterion = models.loss.get_criterion(category_type, args.jaccard_weight)
     optimizer = torch.optim.Adam(net.parameters())
 
     for epoch in range(1, args.epochs + 1):

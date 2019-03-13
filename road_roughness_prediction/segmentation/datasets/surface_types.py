@@ -19,6 +19,17 @@ class SurfaceCategoryBase(Enum):
         return [x.name.lower() for x in cls]
 
 
+def from_string(type_str):
+    if type_str == 'binary':
+        type_ = BinaryCategory
+    elif type_str == 'simple':
+        type_ = SimpleCategory
+    else:
+        raise ValueError(type_str)
+
+    return type_
+
+
 @unique
 class BinaryCategory(SurfaceCategoryBase):
     BACKGROUND = 0

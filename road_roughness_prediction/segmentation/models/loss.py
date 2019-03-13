@@ -1,12 +1,16 @@
 '''https://github.com/ternaus/robot-surgery-segmentation/blob/master/loss.py'''
 import torch
 from torch import nn
-from torch.nn import functional as F
-import numpy as np
+
+from road_roughness_prediction.segmentation.datasets import surface_types
 
 
-def cuda(x):
-    return x.cuda(async=True) if torch.cuda.is_available() else x
+def get_criterion(category_type, jaccard_weight=None, class_weights=None):
+    if category_type == surface_types.BinaryCategory:
+        criterion = LossBinary(jaccard_weight)
+    else:
+        criterion = LossMulti(jaccard_weight, class_weights, num_classes=len(category_type))
+    return criterion
 
 
 class LossBinary:
@@ -35,12 +39,7 @@ class LossBinary:
 
 class LossMulti:
     def __init__(self, jaccard_weight=0, class_weights=None, num_classes=1):
-        if class_weights is not None:
-            nll_weight = cuda(
-                torch.from_numpy(class_weights.astype(np.float32)))
-        else:
-            nll_weight = None
-        self.nll_loss = nn.NLLLoss(weight=nll_weight)
+        self.nll_loss = nn.NLLLoss(weight=class_weights)
         self.jaccard_weight = jaccard_weight
         self.num_classes = num_classes
 

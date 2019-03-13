@@ -27,7 +27,7 @@ def evaluate(net, loader: DataLoader, class_names,
             labels = labels.to(device)
 
             outputs = net.forward(X)
-            loss += F.cross_entropy(outputs, labels)
+            loss += F.cross_entropy(outputs, labels).item()
 
             _, predicted = torch.max(outputs, 1)
 

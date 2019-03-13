@@ -34,7 +34,7 @@ def evaluate(
             out = net.forward(X)
 
             if criterion:
-                loss += criterion(out, Y)
+                loss += criterion(out, Y).item()
 
             if i == 0:
                 first_out = out

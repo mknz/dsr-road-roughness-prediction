@@ -10,9 +10,18 @@ import torch
 from torch.utils.data import DataLoader
 
 from albumentations import Compose
+from albumentations import OneOf
 from albumentations import RandomCrop
 from albumentations import CenterCrop
 from albumentations import HorizontalFlip
+from albumentations import RandomCrop
+from albumentations import RandomGamma
+from albumentations import Rotate
+from albumentations import RandomSizedCrop
+from albumentations import HueSaturationValue
+from albumentations import RandomBrightnessContrast
+from albumentations.imgaug.transforms import IAAPerspective
+
 
 from road_roughness_prediction.segmentation.datasets import SidewalkSegmentationDatasetFactory
 from road_roughness_prediction.segmentation.datasets import surface_types
@@ -102,15 +111,35 @@ def main():
         assert data_dir.exists(), f'{str(data_dir)} does not exist.'
 
     input_size = args.input_size
+    w, h = input_size
+    rate = 0.9
 
-    # Transforms
+    '''
     train_transform = Compose([
         HorizontalFlip(p=0.5),
         RandomCrop(*input_size),
     ])
+    '''
+    # Transforms
+    train_transform = Compose([
+        HorizontalFlip(p=0.5),
+        IAAPerspective(scale=(0.05, 0.1), p=0.3),
+        RandomGamma(p=0.5),
+        HueSaturationValue(
+            hue_shift_limit=10,
+            sat_shift_limit=15,
+            val_shift_limit=10,
+            p=0.5
+        ),
+        RandomBrightnessContrast(p=0.5),
+        OneOf([
+            RandomSizedCrop((int(h * rate), int(w * rate)), h, w, p=1.0),
+            RandomCrop(h, w, p=1.0),
+        ], p=1.0)
+    ])
 
     validation_transform = Compose([
-        CenterCrop(*input_size),
+        CenterCrop(h, w),
     ])
 
     category_type = surface_types.from_string(args.category_type)

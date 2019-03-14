@@ -12,6 +12,7 @@ from albumentations import CenterCrop
 from albumentations import RandomCrop
 
 from road_roughness_prediction.segmentation.datasets import SidewalkSegmentationDatasetFactory
+from road_roughness_prediction.segmentation.datasets.surface_types import BinaryCategory
 from road_roughness_prediction.segmentation.datasets.surface_types import SimpleCategory
 import road_roughness_prediction.tools.torch as torch_tools
 
@@ -24,8 +25,7 @@ def test_transform():
     transform = Compose([
         CenterCrop(800, 800),
     ])
-    is_binary = True
-    dataset = SidewalkSegmentationDatasetFactory([ROOT], SimpleCategory, transform, is_binary)
+    dataset = SidewalkSegmentationDatasetFactory([ROOT], SimpleCategory, transform)
 
     img, mask = dataset.get_raw_image(0)
 
@@ -57,8 +57,7 @@ def test_transform():
 def test_create_binary_mask_dataset():
     transform = Compose([
     ])
-    is_binary = True
-    dataset = SidewalkSegmentationDatasetFactory([ROOT], SimpleCategory, transform, is_binary)
+    dataset = SidewalkSegmentationDatasetFactory([ROOT], BinaryCategory, transform)
 
     # Only one file
     assert len(dataset) == 1
@@ -72,7 +71,6 @@ def test_create_binary_mask_dataset():
 
 def test_create_multiple_dataset():
     transform = Compose([])
-    is_binary = True
     directories = [ROOT, ROOT]
-    dataset = SidewalkSegmentationDatasetFactory(directories, SimpleCategory, transform, is_binary)
+    dataset = SidewalkSegmentationDatasetFactory(directories, SimpleCategory, transform)
     assert len(dataset) == 2

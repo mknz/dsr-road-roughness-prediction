@@ -110,9 +110,9 @@ def train(
     n_class = len(dataset.category_type)
 
     if model_name == 'tiny_cnn':
-        net = models.TinyCNN(n_class)
+        net = models.TinyCNN(n_class).to(device)
     elif model_name == 'resnet18':
-        net = models.Resnet18(n_class)
+        net = models.Resnet18(n_class).to(device)
     else:
         raise ValueError(f'Unknown model name {model_name}')
 
@@ -125,8 +125,8 @@ def train(
         train_loss = 0.
         net.train()
         for X, labels in tqdm(train_loader):
-            X.to(device)
-            labels.to(device)
+            X = X.to(device)
+            labels = labels.to(device)
 
             optimizer.zero_grad()
             outputs = net.forward(X)
@@ -149,6 +149,7 @@ def train(
             epoch=epoch,
             writer=writer,
             group='validation',
+            device=device,
         )
 
         torch.save(net.state_dict(), str(log_dir / f'{model_name}_dict_epoch_{epoch:03d}.pth'))

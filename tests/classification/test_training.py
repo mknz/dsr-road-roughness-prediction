@@ -19,7 +19,7 @@ class TestTraining:
 
     args = [
         'python3',
-        'scripts/classification/train.py',
+        'train_clf.py',
         '--data-dir', str(image_dir),
         '--target-dir-name', 'ready',
         '--batch-size', '128',

@@ -2,17 +2,22 @@ import numpy as np
 
 import torch
 
-from torchvision.utils import make_grid
-from torchvision.transforms.functional import to_pil_image
-from torchvision.transforms.functional import to_tensor
-from torchvision.transforms.functional import resize
-
 
 def to_image(tensor: torch.Tensor):
     '''Return [W, H, C] numpy array'''
     return (tensor.permute(1, 2, 0).numpy() * 255).astype(np.uint8)
 
 
-def make_resized_grid(tensor: torch.Tensor, size, normalize=False) -> torch.Tensor:
-    grid = make_grid(tensor, normalize=normalize)
-    return to_tensor(resize(to_pil_image(grid), size))
+def get_device(use_cpu=True, device_id=0):
+    if use_cpu:
+        device = 'cpu'
+    else:
+        device = torch.device(f'cuda:{device_id}' if torch.cuda.is_available() else "cpu")
+    return device
+
+
+def set_seeds(seed: int, device: torch.device):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    if 'cuda' in device.type:
+        torch.cuda.manual_seed(seed)

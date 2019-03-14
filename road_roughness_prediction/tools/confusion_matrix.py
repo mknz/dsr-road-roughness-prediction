@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 from sklearn.metrics import confusion_matrix
 
-from ..tools.image_utils import matplot_to_pil
+from ..tools.image_utils import fig_to_pil
 
 
 def plot_confusion_matrix(cm, classes,
@@ -96,7 +96,7 @@ def calc_plot_confusion_matrix(
             _save(fig, fig_save_path, f'_{cond}')
 
         if writer:
-            img = np.array(matplot_to_pil(fig)).astype(np.uint8)
+            img = np.array(fig_to_pil(fig)).astype(np.uint8)
             img_ = img[:, :, :3]  # Remove alpha
             writer.add_image(f'{group}/cm/{cond}', img_, epoch, dataformats='HWC')
 

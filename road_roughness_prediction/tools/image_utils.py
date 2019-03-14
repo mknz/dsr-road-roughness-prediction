@@ -15,7 +15,7 @@ def save_and_open(save_func):
     return buf_
 
 
-def matplot_to_pil(fig: plt.Figure):
+def fig_to_pil(fig: plt.Figure):
     '''Convert matplot figure to PIL Image'''
     buf = save_and_open(fig.savefig)
     return Image.open(buf)

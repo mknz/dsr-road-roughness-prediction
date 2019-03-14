@@ -30,7 +30,7 @@ class TestEvaluation:
 
     args = [
         'python3',
-        'scripts/classification/eval.py',
+        'eval_clf.py',
         '--weight-path', str(weight_path),
         '--image-dir', str(image_dir),
         '--model-name', 'tiny_cnn',

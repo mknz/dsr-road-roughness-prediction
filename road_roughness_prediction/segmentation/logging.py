@@ -86,14 +86,14 @@ class Logger:
         for i, path in enumerate(paths[:self.n_save]):
             mask = np.array(Image.open(path))
             mask_ = surface_types.convert_mask(mask, self.category_type)
-            image_rgb = surface_types.COLORMAP[mask_]
+            image_rgb = surface_types.COLOR_MAP[mask_]
             resized = resize_pil_image(image_rgb)
             self.writer.add_image(f'{tag}/{i:03d}', resized, global_steps, dataformats='HWC')
 
 
 def expand_to_rgb(tensor):
     '''(N, H, W) -> (N, 3, H, W)'''
-    rgb = surface_types.COLORMAP[tensor]
+    rgb = surface_types.COLOR_MAP[tensor]
     return torch.Tensor(rgb).permute(0, 3, 1, 2)
 
 
@@ -101,7 +101,7 @@ def create_legend_figure(category_type, figsize=(2, 4)):
     '''Save legend figure'''
     patches = [
         mpatches.Patch(
-            color=surface_types.COLORMAP[category.value],
+            color=surface_types.COLOR_MAP[category.value],
             label=category.name
         )
         for category in category_type

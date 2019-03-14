@@ -10,6 +10,8 @@ import torch
 
 from torch.utils.data import DataLoader
 
+from PIL import Image
+
 from albumentations import Compose
 from albumentations import CenterCrop
 
@@ -48,8 +50,18 @@ class ImageWriter:
         self.input_dir = save_dir / 'input'
         self.output_dir = save_dir / 'output'
         self.target_dir = save_dir / 'target'
+        self.blend_output_dir = save_dir / 'blend_output'
+        self.blend_target_dir = save_dir / 'blend_target'
 
-        for dir_ in [self.input_dir, self.output_dir, self.target_dir]:
+        dirs = [
+            self.input_dir,
+            self.output_dir,
+            self.target_dir,
+            self.blend_output_dir,
+            self.blend_target_dir,
+        ]
+
+        for dir_ in dirs:
             if not dir_.exists():
                 dir_.mkdir()
 
@@ -71,14 +83,28 @@ class ImageWriter:
             input_img.save(save_path)
 
             out_seg_img = np.array(out_seg[i, :, :]).astype(np.uint8)
+            out_seg_index_img = utils.create_index_image(out_seg_img)
             save_path = self.output_dir / (file_name + '.png')
-            utils.save_index_image(out_seg_img, save_path)
+            out_seg_index_img.save(save_path)
 
             target_img = np.array(Y[i, :, :]).astype(np.uint8)
+            target_index_img = utils.create_index_image(target_img)
             save_path = self.target_dir / (file_name + '.png')
-            utils.save_index_image(target_img, save_path)
+            target_index_img.save(save_path)
+
+            blend_output_img = self._blend_image(input_img, out_seg_index_img)
+            save_path = self.blend_output_dir / (file_name + '.jpg')
+            blend_output_img.save(save_path)
+
+            blend_target_img = self._blend_image(input_img, target_index_img)
+            save_path = self.blend_target_dir / (file_name + '.jpg')
+            blend_target_img.save(save_path)
 
             self._counter += 1
+
+    def _blend_image(self, original, segmented):
+        blend = Image.blend(original.convert('RGB'), segmented.convert('RGB'), alpha=0.2)
+        return blend
 
 
 def main():

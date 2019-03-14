@@ -7,11 +7,10 @@ from PIL import Image
 from road_roughness_prediction.segmentation.datasets import surface_types
 
 
-def save_index_image(img: np.array, save_path: Path):
+def create_index_image(img: np.array):
     assert len(img.shape) == 2
     assert img.dtype == np.uint8
-    assert save_path.suffix == '.png'
 
     pil_img = Image.fromarray(img, mode='P')
     pil_img.putpalette(surface_types.COLOR_PALETTE)
-    pil_img.save(save_path)
+    return pil_img

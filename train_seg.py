@@ -123,7 +123,8 @@ def main():
     # Transforms
     train_transform = Compose([
         HorizontalFlip(p=0.5),
-        IAAPerspective(scale=(0.05, 0.1), p=0.3),
+        #IAAPerspective(scale=(0.05, 0.1), p=0.3),
+        Rotate(5, p=0.5),
         RandomGamma(p=0.5),
         HueSaturationValue(
             hue_shift_limit=10,

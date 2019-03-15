@@ -88,7 +88,7 @@ def main():
     parser.add_argument('--input-size', type=int, nargs=2, default=(640, 640))
     parser.add_argument('--jaccard-weight', type=float, default=0.3)
 
-    available_networks = ['unet11']
+    available_networks = ['unet11', 'unet16']
     parser.add_argument('--model-name', type=str, default='unet11', choices=available_networks)
 
     parser.add_argument('--batch-size', type=int, default=128)

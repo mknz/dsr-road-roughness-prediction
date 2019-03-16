@@ -30,6 +30,11 @@ class TestTraining:
         args_ = self.args + ['--model-name', 'unet11']
         subprocess.run(args_, check=True, timeout=60)
 
+    def test_unet11_binary(self):
+        args_ = self.args + ['--model-name', 'unet11']
+        args_ += ['--cpu']
+        subprocess.run(args_, check=True, timeout=60)
+
     def test_unet11_simple(self):
         args_ = self.args + ['--model-name', 'unet11']
         args_ += ['--category-type', 'simple']

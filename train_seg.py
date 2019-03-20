@@ -3,6 +3,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
+
 from tqdm import tqdm
 
 import torch
@@ -32,7 +34,7 @@ import road_roughness_prediction.tools.torch as torch_tools
 
 
 def train(net, loader, epoch, optimizer, criterion, device, logger):
-    total_loss = 0.
+    losses = []
     net.train()
     for i, batch in enumerate(tqdm(loader)):
         X = batch['X']
@@ -47,15 +49,15 @@ def train(net, loader, epoch, optimizer, criterion, device, logger):
         loss.backward()
         optimizer.step()
 
-        total_loss += loss.item()
+        losses.append(loss.item())
         if i == 0:
             first_out = out
 
-    total_loss /= len(loader.dataset)
-    print(f'train loss: {total_loss:.4f}')
+    mean_loss = np.mean(losses)
+    print(f'train loss: {mean_loss:.4f}')
 
     # Record loss
-    logger.writer.add_scalar('train/loss', total_loss, epoch)
+    logger.writer.add_scalar('train/loss', mean_loss, epoch)
 
     # Record output
     logger.add_output('train/outputs', first_out.cpu(), epoch)

@@ -28,18 +28,18 @@ import road_roughness_prediction.tools.torch as torch_tools
 def evaluate(net, loader: DataLoader, criterion, device, save_dir):
 
     net.eval()
-    loss = 0.
+    losses = []
     image_writer = ImageWriter(save_dir)
     with torch.no_grad():
         for batch in tqdm(loader):
             X = batch['X'].to(device)
             Y = batch['Y'].to(device)
             out = net.forward(X)
-            loss += criterion(out, Y).item()
+            losses.append(criterion(out, Y).item())
             image_writer.write_batch_images(batch, out.cpu())
 
-    loss /= len(loader.dataset)
-    print(f'loss: {loss:.4f}')
+    mean_loss = np.mean(losses)
+    print(f'loss: {mean_loss:.4f}')
 
 
 class ImageWriter:
@@ -139,7 +139,8 @@ def main():
         save_path.mkdir(parents=True)
 
     net = models.load_model(args.model_name, category_type).to(device)
-    net.load_state_dict(state_dict=torch.load(weight_path))
+    state_dict = torch.load(weight_path, map_location=device)
+    net.load_state_dict(state_dict=state_dict)
 
     input_size = args.input_size
 

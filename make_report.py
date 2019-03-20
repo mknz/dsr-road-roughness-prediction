@@ -20,35 +20,36 @@ def compute_confusion_matrix(true, pred, n_classes):
 
 def build_confusion_matrix(ground_trouth_batch, prediction_batch, category_type):
     n_classes = len(category_type)
-    result_conf_matrix = np.zeros((n_classes, n_classes))
+    conf_matrix = np.zeros((n_classes, n_classes))
 
-    #loop over each tensor in batch
+    # loop over each tensor in batch
     for b in range(ground_trouth_batch.shape[0]):
-        result_conf_matrix += compute_confusion_matrix(
+        conf_matrix += compute_confusion_matrix(
             ground_trouth_batch[b, ::].flatten(),
             prediction_batch[b, ::].flatten(),
             n_classes,
         )
-    return result_conf_matrix
+    return conf_matrix
 
 
-def calc_metrics (confusion_matrix, category_id = -1):
-    if category_id == -1:  #overall metrics
+def calc_metrics(confusion_matrix, category_id = -1):
+    if category_id == -1:  # overall metrics
         true_pos = np.sum(np.diag(confusion_matrix))
         false_pos = np.sum(confusion_matrix) - true_pos
-        accuracy = precision = recall = f_measure = true_pos / (true_pos + false_pos)
+        accuracy = precision = recall = f_measure = jaccard_index = true_pos / (true_pos + false_pos + 1e-15)
     else:
         true_pos  = confusion_matrix[category_id, category_id]
         true_neg  = np.sum(np.diag(confusion_matrix)) - true_pos
-        false_pos = np.sum(confusion_matrix, axis=0)[category_id]  #column for category_id
-        false_neg = np.sum(confusion_matrix, axis=1)[category_id]  #line for category_id
+        false_pos = np.sum(confusion_matrix, axis=0)[category_id]  # column for category_id
+        false_neg = np.sum(confusion_matrix, axis=1)[category_id]  # row for category_id
 
-        accuracy  = (true_pos + true_neg) / (true_pos + true_neg + false_pos + false_neg)
-        precision = (true_pos) / (true_pos + false_pos)
-        recall    = (true_pos) / (true_pos + false_neg)
-        f_measure = (2 * recall * precision) / (recall + precision)
+        accuracy  = (true_pos + true_neg) / (true_pos + true_neg + false_pos + false_neg + 1e-15)
+        precision = (true_pos) / (true_pos + false_pos + 1e-15)
+        recall    = (true_pos) / (true_pos + false_neg + 1e-15)
+        f_measure = (2 * recall * precision) / (recall + precision + 1e-15)
+        jaccard_index = true_pos / (true_pos + false_pos + false_neg + 1e-15)
 
-    return accuracy, precision, recall, f_measure
+    return accuracy, precision, recall, f_measure, jaccard_index
 
 
 def load(data_dir: Path):
@@ -85,6 +86,8 @@ def main():
 
     for category in category_type:
         print(f'{category.name:15s}{category.value:02d}')
+        metrics = calc_metrics(confusion_matrix, category.value)
+        print(metrics)
 
     print('confusion_matrix')
     print(confusion_matrix)
@@ -94,6 +97,7 @@ def main():
 
     metrics = calc_metrics(confusion_matrix[1:, 1:])
     print('sidwalk', metrics)
+
 
 
 if __name__ == '__main__':

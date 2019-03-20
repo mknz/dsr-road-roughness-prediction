@@ -1,4 +1,5 @@
 '''Segmentation training'''
+import argparse
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -25,8 +26,7 @@ from albumentations import RandomBrightnessContrast
 from albumentations.imgaug.transforms import IAAPerspective
 
 
-from road_roughness_prediction.segmentation.datasets import SidewalkSegmentationDatasetFactory
-from road_roughness_prediction.segmentation.datasets import surface_types
+from road_roughness_prediction.segmentation import datasets
 from road_roughness_prediction.segmentation import models
 from road_roughness_prediction.segmentation.inference import evaluate
 from road_roughness_prediction.segmentation import logging
@@ -79,13 +79,15 @@ def _get_log_dir(args) -> Path:
 
 
 def main():
-    import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--train-data-dirs', required=True, nargs='+')
-    parser.add_argument('--validation-data-dirs', required=True, nargs='+')
+    parser.add_argument('--train-image-dirs', required=True, nargs='+')
+    parser.add_argument('--validation-image-dirs', required=True, nargs='+')
+    parser.add_argument('--train-mask-dirs', required=True, nargs='+')
+    parser.add_argument('--validation-mask-dirs', required=True, nargs='+')
     parser.add_argument('--save-dir', default='./runs')
     parser.add_argument('--cpu', action='store_true')
     parser.add_argument('--category-type', default='binary', choices=['binary', 'simple'])
+    parser.add_argument('--dataset-type', default='base', choices=['base', 'bdd'])
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--input-size', type=int, nargs=2, default=(640, 640))
     parser.add_argument('--jaccard-weight', type=float, default=0.3)
@@ -104,12 +106,16 @@ def main():
     device = torch_tools.get_device(args.cpu, args.device_id)
     torch_tools.set_seeds(args.seed, device)
 
-    train_data_dirs = [Path(p) for p in args.train_data_dirs]
-    for data_dir in train_data_dirs:
-        assert data_dir.exists(), f'{str(data_dir)} does not exist.'
+    train_image_dirs = [Path(p) for p in args.train_image_dirs]
+    train_mask_dirs = [Path(p) for p in args.train_mask_dirs]
+    validation_image_dirs = [Path(p) for p in args.validation_image_dirs]
+    validation_mask_dirs = [Path(p) for p in args.validation_mask_dirs]
 
-    validation_data_dirs = [Path(p) for p in args.validation_data_dirs]
-    for data_dir in validation_data_dirs:
+    for data_dir in\
+            train_image_dirs +\
+            train_mask_dirs +\
+            validation_image_dirs +\
+            validation_mask_dirs:
         assert data_dir.exists(), f'{str(data_dir)} does not exist.'
 
     input_size = args.input_size
@@ -145,27 +151,47 @@ def main():
         CenterCrop(h, w),
     ])
 
-    category_type = surface_types.from_string(args.category_type)
+    category_type = datasets.surface_types.from_string(args.category_type)
 
     # Logger
     log_dir = _get_log_dir(args)
     logger = logging.Logger(log_dir, n_save=16, image_size=256, category_type=category_type)
     logger.writer.add_text('args', str(args))
 
-    # Train dataset and loader
-    train_dataset = SidewalkSegmentationDatasetFactory(
-        train_data_dirs,
-        category_type,
-        train_transform,
-    )
-    train_loader = DataLoader(train_dataset, args.batch_size, shuffle=True)
+    if args.dataset_type == 'base':
+        # Train dataset and loader
+        train_dataset = datasets.SidewalkSegmentationDatasetFactory(
+            train_image_dirs,
+            train_mask_dirs,
+            category_type,
+            train_transform,
+        )
 
-    # Validation dataset and loader
-    validation_dataset = SidewalkSegmentationDatasetFactory(
-        validation_data_dirs,
-        category_type,
-        validation_transform,
-    )
+        # Validation dataset and loader
+        validation_dataset = datasets.SidewalkSegmentationDatasetFactory(
+            validation_image_dirs,
+            validation_mask_dirs,
+            category_type,
+            validation_transform,
+        )
+    elif args.dataset_type == 'bdd':
+        # Train dataset and loader
+        train_dataset = datasets.BddDatasetFactory(
+            train_image_dirs,
+            train_mask_dirs,
+            category_type,
+            train_transform,
+        )
+
+        # Validation dataset and loader
+        validation_dataset = datasets.BddDatasetFactory(
+            validation_image_dirs,
+            validation_mask_dirs,
+            category_type,
+            validation_transform,
+        )
+
+    train_loader = DataLoader(train_dataset, args.batch_size, shuffle=True)
     validation_loader = DataLoader(validation_dataset, args.batch_size, shuffle=False)
     net = models.load_model(args.model_name, category_type).to(device)
 

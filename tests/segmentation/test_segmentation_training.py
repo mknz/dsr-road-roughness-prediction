@@ -9,12 +9,15 @@ class TestTraining:
 
     workdir = Path(tempfile.mkdtemp())
 
-    image_dir = Path('tests/resources/segmentation/labelme')
+    image_dir = Path('tests/resources/segmentation/labelme/JPEGImages')
+    mask_dir = Path('tests/resources/segmentation/labelme/SegmentationClassPNG')
     args = [
         'python3',
         'train_seg.py',
-        '--train-data-dirs', str(image_dir), str(image_dir),  str(image_dir),
-        '--validation-data-dirs', str(image_dir), str(image_dir),  str(image_dir),
+        '--train-image-dirs', str(image_dir), str(image_dir), str(image_dir),
+        '--train-mask-dirs', str(mask_dir), str(mask_dir), str(mask_dir),
+        '--validation-image-dirs', str(image_dir), str(image_dir), str(image_dir),
+        '--validation-mask-dirs', str(mask_dir), str(mask_dir), str(mask_dir),
         '--input-size', '64', '64',
         '--batch-size', '128',
         '--epochs', '2',

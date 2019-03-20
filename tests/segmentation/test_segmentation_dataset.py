@@ -18,7 +18,7 @@ from albumentations import RandomBrightnessContrast
 from albumentations.imgaug.transforms import IAAPerspective
 
 
-from road_roughness_prediction.segmentation.datasets import SidewalkSegmentationDatasetFactory
+from road_roughness_prediction.segmentation import datasets
 from road_roughness_prediction.segmentation.datasets.surface_types import BinaryCategory
 from road_roughness_prediction.segmentation.datasets.surface_types import SimpleCategory
 import road_roughness_prediction.tools.torch as torch_tools
@@ -26,6 +26,8 @@ from road_roughness_prediction.segmentation import logging
 
 
 ROOT = Path('tests/resources/segmentation/labelme')
+IMAGE_DIRS = [ROOT / 'JPEGImages']
+MASK_DIRS = [ROOT / 'SegmentationClassPNG']
 
 
 @pytest.mark.interactive
@@ -41,7 +43,9 @@ def test_transform():
         RandomBrightnessContrast(p=1.0),
         RandomSizedCrop((int(size * rate) , int(size * rate)), size, size, p=1.),
     ])
-    dataset = SidewalkSegmentationDatasetFactory([ROOT], SimpleCategory, transform)
+    dataset = datasets.SidewalkSegmentationDatasetFactory(
+        IMAGE_DIRS, MASK_DIRS, SimpleCategory, transform,
+    )
 
     img, mask = dataset.get_raw_image(0)
 
@@ -56,7 +60,7 @@ def test_transform():
     plt.imshow(mask)
     plt.show()
 
-    for i in range(10):
+    for i in range(5):
         data = dataset[0]
         img = np.array(to_pil_image(logging.normalize(data['X'])))
         mask = data['Y'].numpy()
@@ -75,7 +79,9 @@ def test_transform():
 def test_create_binary_mask_dataset():
     transform = Compose([
     ])
-    dataset = SidewalkSegmentationDatasetFactory([ROOT], BinaryCategory, transform)
+    dataset = datasets.SidewalkSegmentationDatasetFactory(
+        IMAGE_DIRS, MASK_DIRS, BinaryCategory, transform,
+    )
 
     # Only one file
     assert len(dataset) == 1
@@ -85,10 +91,3 @@ def test_create_binary_mask_dataset():
 
     # Binary mask
     assert set(mask.unique().tolist()) == set([0, 1])
-
-
-def test_create_multiple_dataset():
-    transform = Compose([])
-    directories = [ROOT, ROOT]
-    dataset = SidewalkSegmentationDatasetFactory(directories, SimpleCategory, transform)
-    assert len(dataset) == 2

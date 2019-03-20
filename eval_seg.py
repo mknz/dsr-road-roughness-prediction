@@ -110,7 +110,8 @@ class ImageWriter:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--weight-path', required=True)
-    parser.add_argument('--data-dirs', required=True, type=str, nargs='+')
+    parser.add_argument('--image-dirs', required=True, type=str, nargs='+')
+    parser.add_argument('--mask-dirs', required=True, type=str, nargs='+')
     parser.add_argument('--model-name', type=str, default='unet11')
     parser.add_argument('--save-path', default='forward')
     parser.add_argument('--category-type', default='binary', choices=['binary', 'simple'])
@@ -123,8 +124,9 @@ def main():
     args = parser.parse_args()
     print(args)
 
-    data_dirs = [Path(p) for p in args.data_dirs]
-    for data_dir in data_dirs:
+    image_dirs = [Path(p) for p in args.image_dirs]
+    mask_dirs = [Path(p) for p in args.mask_dirs]
+    for data_dir in (image_dirs + mask_dirs):
         assert data_dir.exists(), f'{str(data_dir)} does not exist.'
 
     device = torch_tools.get_device(args.cpu, args.device_id)
@@ -149,7 +151,8 @@ def main():
     ])
 
     dataset = SidewalkSegmentationDatasetFactory(
-        data_dirs,
+        image_dirs,
+        mask_dirs,
         category_type,
         transform,
     )

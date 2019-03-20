@@ -81,15 +81,6 @@ class Logger:
             resized = resize_pil_image(image)
             self.writer.add_image(f'{tag}/{i:03d}', resized / 255, global_steps, dataformats='HWC')
 
-    def add_masks_from_path(self, tag, paths: List[str], global_steps=None):
-        '''Image sizes can be different'''
-        for i, path in enumerate(paths[:self.n_save]):
-            mask = np.array(Image.open(path))
-            mask_ = surface_types.convert_mask(mask, self.category_type)
-            image_rgb = surface_types.COLOR_MAP[mask_]
-            resized = resize_pil_image(image_rgb)
-            self.writer.add_image(f'{tag}/{i:03d}', resized, global_steps, dataformats='HWC')
-
 
 def expand_to_rgb(tensor):
     '''(N, H, W) -> (N, 3, H, W)'''

@@ -42,7 +42,6 @@ def evaluate(
     # First epoch
     if epoch == 1 and logger:
         logger.add_images_from_path(f'{group}/images', first_batch['image_path'])
-        logger.add_masks_from_path(f'{group}/masks', first_batch['mask_path'])
         logger.add_input(f'{group}/inputs', first_batch['X'].cpu())
         logger.add_target(f'{group}/targets', first_batch['Y'].cpu())
 

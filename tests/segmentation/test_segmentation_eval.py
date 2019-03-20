@@ -23,12 +23,15 @@ class TestSegmentationEvaluation:
     torch.save(net.state_dict(), weight_path)
 
     data_dir = Path('tests/resources/segmentation/labelme')
+    image_dir = data_dir / 'JPEGImages'
+    mask_dir = data_dir / 'SegmentationClassPNG'
 
     args = [
         'python3',
         'eval_seg.py',
         '--weight-path', str(weight_path),
-        '--data-dirs', str(data_dir),
+        '--image-dirs', str(image_dir),
+        '--mask-dirs', str(mask_dir),
         '--model-name', model_name,
         '--save-path', str(workdir),
         '--category-type', category_name,

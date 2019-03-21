@@ -33,6 +33,7 @@ def build_confusion_matrix(ground_trouth_batch, prediction_batch, category_type)
 
 
 def calc_metrics(confusion_matrix, category_id = -1):
+    epsilon = 1e-15
     if category_id == -1:  # overall metrics
         true_pos = np.sum(np.diag(confusion_matrix))
         false_pos = np.sum(confusion_matrix) - true_pos
@@ -40,14 +41,16 @@ def calc_metrics(confusion_matrix, category_id = -1):
     else:
         true_pos  = confusion_matrix[category_id, category_id]
         true_neg  = np.sum(np.diag(confusion_matrix)) - true_pos
-        false_pos = np.sum(confusion_matrix, axis=0)[category_id]  # column for category_id
-        false_neg = np.sum(confusion_matrix, axis=1)[category_id]  # row for category_id
+        false_pos = np.sum(confusion_matrix, axis=0)[category_id] - true_pos
+        false_neg = np.sum(confusion_matrix, axis=1)[category_id] - true_pos
+        # Debug
+        #print(f'tp:{true_pos} tn:{true_neg} fp:{false_pos} fn:{false_neg}')
 
-        accuracy  = (true_pos + true_neg) / (true_pos + true_neg + false_pos + false_neg + 1e-15)
-        precision = (true_pos) / (true_pos + false_pos + 1e-15)
-        recall    = (true_pos) / (true_pos + false_neg + 1e-15)
-        f_measure = (2 * recall * precision) / (recall + precision + 1e-15)
-        jaccard_index = true_pos / (true_pos + false_pos + false_neg + 1e-15)
+        accuracy  = (true_pos + true_neg) / (true_pos + true_neg + false_pos + false_neg + epsilon)
+        precision = (true_pos) / (true_pos + false_pos + epsilon)
+        recall    = (true_pos) / (true_pos + false_neg + epsilon)
+        f_measure = (2 * recall * precision) / (recall + precision + epsilon)
+        jaccard_index = true_pos / (true_pos + false_pos + false_neg + epsilon)
 
     return accuracy, precision, recall, f_measure, jaccard_index
 
@@ -69,6 +72,12 @@ def load(data_dir: Path):
     return np.array(targets), np.array(outputs)
 
 
+def _print_summary(metrics):
+    for val, name in zip(metrics, ['accuracy', 'precision', 'recall', 'f_measure', 'jaccard_index']):
+        print(f'{name:14s} {val:.5f}')
+    print()
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data-dir', required=True)
@@ -87,17 +96,19 @@ def main():
     for category in category_type:
         print(f'{category.name:15s}{category.value:02d}')
         metrics = calc_metrics(confusion_matrix, category.value)
-        print(metrics)
+        _print_summary(metrics)
 
     print('confusion_matrix')
     print(confusion_matrix)
+    print()
 
     metrics = calc_metrics(confusion_matrix)
-    print('all', metrics)
+    print('ALL')
+    _print_summary(metrics)
 
     metrics = calc_metrics(confusion_matrix[1:, 1:])
-    print('sidwalk', metrics)
-
+    print('WITHIN_SIDEWALK')
+    _print_summary(metrics)
 
 
 if __name__ == '__main__':

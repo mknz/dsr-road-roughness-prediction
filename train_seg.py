@@ -9,8 +9,8 @@ import numpy as np
 from tqdm import tqdm
 
 import torch
-
 from torch.utils.data import DataLoader
+from torch.utils.data import ConcatDataset
 
 from albumentations import Compose
 from albumentations import OneOf
@@ -80,14 +80,18 @@ def _get_log_dir(args) -> Path:
 
 def main():
     parser = argparse.ArgumentParser()
+
     parser.add_argument('--train-image-dirs', required=True, nargs='+')
-    parser.add_argument('--validation-image-dirs', required=True, nargs='+')
     parser.add_argument('--train-mask-dirs', required=True, nargs='+')
+    parser.add_argument('--train-dataset-types', nargs='+')
+
+    parser.add_argument('--validation-image-dirs', required=True, nargs='+')
     parser.add_argument('--validation-mask-dirs', required=True, nargs='+')
+    parser.add_argument('--validation-dataset-types', nargs='+')
+
     parser.add_argument('--save-dir', default='./runs')
     parser.add_argument('--cpu', action='store_true')
     parser.add_argument('--category-type', default='binary', choices=['binary', 'simple'])
-    parser.add_argument('--dataset-type', default='base', choices=['base', 'bdd'])
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--input-size', type=int, nargs=2, default=(640, 640))
     parser.add_argument('--jaccard-weight', type=float, default=0.3)
@@ -158,20 +162,31 @@ def main():
     logger = logging.Logger(log_dir, n_save=16, image_size=256, category_type=category_type)
     logger.writer.add_text('args', str(args))
 
-    train_dataset = datasets.create_dataset(
-        args.dataset_type,
-        train_image_dirs,
-        train_mask_dirs,
-        category_type,
-        train_transform,
-    )
-    validation_dataset = datasets.create_dataset(
-        args.dataset_type,
-        validation_image_dirs,
-        validation_mask_dirs,
-        category_type,
-        validation_transform,
-    )
+    train_datasets = []
+    for image_dir, mask_dir, dataset_type in zip(train_image_dirs, train_mask_dirs, args.train_dataset_types):
+        _dataset = datasets.create_dataset(
+            dataset_type,
+            [image_dir],
+            [mask_dir],
+            category_type,
+            train_transform,
+        )
+        train_datasets.append(_dataset)
+
+    validation_datasets = []
+    for image_dir, mask_dir, dataset_type in zip(validation_image_dirs, validation_mask_dirs, args.validation_dataset_types):
+        _dataset = datasets.create_dataset(
+            dataset_type,
+            [image_dir],
+            [mask_dir],
+            category_type,
+            validation_transform,
+        )
+        validation_datasets.append(_dataset)
+
+    # Merge datasets
+    train_dataset = ConcatDataset(train_datasets)
+    validation_dataset = ConcatDataset(validation_datasets)
 
     train_loader = DataLoader(train_dataset, args.batch_size, shuffle=True)
     validation_loader = DataLoader(validation_dataset, args.batch_size, shuffle=False)

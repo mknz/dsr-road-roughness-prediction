@@ -158,38 +158,20 @@ def main():
     logger = logging.Logger(log_dir, n_save=16, image_size=256, category_type=category_type)
     logger.writer.add_text('args', str(args))
 
-    if args.dataset_type == 'base':
-        # Train dataset and loader
-        train_dataset = datasets.SidewalkSegmentationDatasetFactory(
-            train_image_dirs,
-            train_mask_dirs,
-            category_type,
-            train_transform,
-        )
-
-        # Validation dataset and loader
-        validation_dataset = datasets.SidewalkSegmentationDatasetFactory(
-            validation_image_dirs,
-            validation_mask_dirs,
-            category_type,
-            validation_transform,
-        )
-    elif args.dataset_type == 'bdd':
-        # Train dataset and loader
-        train_dataset = datasets.BddDatasetFactory(
-            train_image_dirs,
-            train_mask_dirs,
-            category_type,
-            train_transform,
-        )
-
-        # Validation dataset and loader
-        validation_dataset = datasets.BddDatasetFactory(
-            validation_image_dirs,
-            validation_mask_dirs,
-            category_type,
-            validation_transform,
-        )
+    train_dataset = datasets.create_dataset(
+        args.dataset_type,
+        train_image_dirs,
+        train_mask_dirs,
+        category_type,
+        train_transform,
+    )
+    validation_dataset = datasets.create_dataset(
+        args.dataset_type,
+        validation_image_dirs,
+        validation_mask_dirs,
+        category_type,
+        validation_transform,
+    )
 
     train_loader = DataLoader(train_dataset, args.batch_size, shuffle=True)
     validation_loader = DataLoader(validation_dataset, args.batch_size, shuffle=False)

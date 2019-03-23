@@ -43,20 +43,21 @@ class TestSegmentationEvaluation:
         shutil.rmtree(self.workdir)
 
     def test_run(self):
-        images = [np.array(Image.open(p)) for p in self.image_dir.glob('*.jpg')]
-        images = np.array(images)
 
         def _prep_func(image: np.array):
             image_ = center_crop(image, self.input_size[1], self.input_size[0])
             image_ = imagenet_normalize(image_)
-            return to_tensor(image_)
+            return to_tensor(image_).squeeze().unsqueeze(0)
+
+        images = [np.array(Image.open(p)) for p in self.image_dir.glob('*.jpg')]
+        images = [_prep_func(image) for image in images]
+        images = torch.cat(images)
 
         segmentator = SidewalkSegmentator(
             sidewalk_detector_weight_path=self.sidewalk_detector_weight_path,
             surface_segmentator_weight_path=self.surface_segmentator_weight_path,
-            image_prep_func=_prep_func,
             device=get_device(use_cpu=True)
         )
-        seg = segmentator.run(images)
+        segmented = segmentator.run(images)
         n_batch, _, height, width = images.shape
-        assert seg.shape == (n_batch, self.input_size[1], self.input_size[0])
+        assert segmented.shape == (n_batch, self.input_size[1], self.input_size[0])

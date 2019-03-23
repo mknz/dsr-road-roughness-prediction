@@ -1,6 +1,5 @@
 '''Two-stage segmentation'''
 from pathlib import Path
-from typing import Callable
 
 import torch
 
@@ -19,10 +18,9 @@ class SidewalkSegmentator:
             self,
             sidewalk_detector_weight_path: Path,
             surface_segmentator_weight_path: Path,
-            image_prep_func: Callable,
             device: torch.device,
             thr_sidewalk=0.5,
-            thr_background=0.1,
+            thr_background=0.2,
     ) -> None:
         self.device = device
         self.thr_sidewalk = thr_sidewalk
@@ -30,21 +28,23 @@ class SidewalkSegmentator:
 
         self._sidewalk_detector = BinarySegmentator(
             sidewalk_detector_weight_path,
-            image_prep_func,
             self.device,
         )
 
         self._surface_segmentator = MultiClassSegmentator(
             surface_segmentator_weight_path,
-            image_prep_func,
             self.device,
         )
 
-    def run(self, images: np.array) -> np.array:
-        mask = self._sidewalk_detector.run(images)
-        surface = self._surface_segmentator.run(images)
-        seg = self._segmentate(mask, surface)
-        return seg
+    def run(self, images: torch.Tensor) -> np.array:
+        X = images.to(self.device)
+        segmented = []
+        for i in range(X.shape[0]):
+            X_ = X[i, ::].unsqueeze(0)
+            mask = self._sidewalk_detector.run(X_)
+            surface = self._surface_segmentator.run(X_)
+            segmented.append(self._segmentate(mask, surface).squeeze())
+        return np.array(segmented)
 
     def _segmentate(self, mask: np.array, surface: np.array) -> np.array:
         # NOTE: This assumes channel index 0 is background
@@ -62,19 +62,18 @@ class SidewalkSegmentator:
         segmented = surface[:, 1:, ::].argmax(axis=1) + 1
 
         # Outside sidewalk pixels are background
-        segmented[sidewalk_mask] = 0
+        segmented[~sidewalk_mask] = 0
 
         # Under threshold pixels are background
         segmented[background_mask] = 0
 
-        return segmented
+        return segmented.astype(np.uint8)
 
 
 class BinarySegmentator:
 
-    def __init__(self, weight_path: Path, image_prep_func: Callable, device) -> None:
+    def __init__(self, weight_path: Path, device) -> None:
         self.device = device
-        self.image_prep_func = image_prep_func
 
         self.net = models.load_model(
             _MODEL_NAME,
@@ -86,22 +85,17 @@ class BinarySegmentator:
         self.net.load_state_dict(state_dict=state_dict)
         print('Done')
 
-    def run(self, images: np.array) -> np.array:
-        image_list = []
-        for i in range(images.shape[0]):
-            image_list.append(self.image_prep_func(images[i, ::]))
-        X = torch.cat(image_list).squeeze().unsqueeze(0).to(self.device)
+    def run(self, images: torch.Tensor) -> np.array:
         self.net.eval()
         with torch.no_grad():
-            out = self.net.forward(X)
+            out = self.net.forward(images)
         return out.cpu().numpy()
 
 
 class MultiClassSegmentator:
 
-    def __init__(self, weight_path: Path, image_prep_func: Callable, device) -> None:
+    def __init__(self, weight_path: Path, device) -> None:
         self.device = device
-        self.image_prep_func = image_prep_func
 
         self.net = models.load_model(
             _MODEL_NAME,
@@ -113,12 +107,8 @@ class MultiClassSegmentator:
         self.net.load_state_dict(state_dict=state_dict)
         print('Done')
 
-    def run(self, images: np.array) -> np.array:
-        image_list = []
-        for i in range(images.shape[0]):
-            image_list.append(self.image_prep_func(images[i, ::]))
-        X = torch.cat(image_list).squeeze().unsqueeze(0).to(self.device)
+    def run(self, images: torch.Tensor) -> np.array:
         self.net.eval()
         with torch.no_grad():
-            out = self.net.forward(X)
+            out = self.net.forward(images)
         return out.cpu().numpy()

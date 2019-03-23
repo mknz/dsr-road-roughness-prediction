@@ -15,6 +15,7 @@ import numpy as np
 
 from .surface_types import convert_mask
 from .surface_types import BinaryCategory
+from road_roughness_prediction.tools.torch import imagenet_normalize
 
 
 class SidewalkSegmentationDatasetBase(ABC, Dataset):
@@ -84,12 +85,8 @@ class SidewalkSegmentationDataset(SidewalkSegmentationDatasetBase):
         augmented = self._transform(**data)
         image, mask = augmented['image'], augmented['mask']
 
-        # Imagenet params
-        image = normalize(
-            image,
-            mean=(0.485, 0.456, 0.406),
-            std=(0.229, 0.224, 0.225),
-        )
+        # Normalize with imagenet params
+        image = imagenet_normalize(image)
 
         X = to_tensor(image)
         if self.category_type == BinaryCategory:

@@ -20,11 +20,11 @@ class SidewalkSegmentator:
             surface_segmentator_weight_path: Path,
             device: torch.device,
             thr_sidewalk=0.5,
-            thr_background=0.2,
+            thr_min_background=-0.2,
     ) -> None:
         self.device = device
         self.thr_sidewalk = thr_sidewalk
-        self.thr_background = thr_background
+        self.thr_min_background = thr_min_background
 
         self._sidewalk_detector = BinarySegmentator(
             sidewalk_detector_weight_path,
@@ -54,9 +54,10 @@ class SidewalkSegmentator:
         sidewalk_mask = np.full(out_shape, False)
         sidewalk_mask[mask[:, 0, ::] >= self.thr_sidewalk]  = True
 
+        # Pixels are considered to be sidewalk only if background prob < thr_min_background
         background_prob = surface[:, 0, ::]
-        background_mask = np.full(out_shape, False)
-        background_mask[background_prob >= self.thr_background] = True
+        background_mask = np.full(out_shape, True)
+        background_mask[background_prob < self.thr_min_background] = False
 
         # Segmentation excluding background
         segmented = surface[:, 1:, ::].argmax(axis=1) + 1

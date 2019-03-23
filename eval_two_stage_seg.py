@@ -31,6 +31,7 @@ class ImageWriter:
         self.input_dir = save_dir / 'input'
         self.output_dir = save_dir / 'output'
         self.target_dir = save_dir / 'target'
+        self.sidewalk_mask_dir = save_dir / 'sidewalk_mask'
         self.blend_output_dir = save_dir / 'blend_output'
         self.blend_target_dir = save_dir / 'blend_target'
 
@@ -40,13 +41,14 @@ class ImageWriter:
             self.target_dir,
             self.blend_output_dir,
             self.blend_target_dir,
+            self.sidewalk_mask_dir,
         ]
 
         for dir_ in dirs:
             if not dir_.exists():
                 dir_.mkdir()
 
-    def write_images(self, inputs, segmented, masks=None):
+    def write_images(self, inputs, segmented, sidewalk_mask, background__mask, masks=None):
         n_batches = segmented.shape[0]
         for i in range(n_batches):
             file_name = f'{self._counter:05d}'
@@ -63,6 +65,12 @@ class ImageWriter:
             blend_output_img = _blend_image(input_img, out_seg_index_img)
             save_path = self.blend_output_dir / (file_name + '.jpg')
             blend_output_img.save(save_path)
+
+            img_ = (sidewalk_mask[i, ::] * 255).astype(np.uint8)
+            img_ = Image.fromarray(img_)
+            img_ = _blend_image(input_img, img_)
+            save_path = self.sidewalk_mask_dir / (file_name + '.png')
+            img_.save(save_path)
 
             if masks:
                 target_img = masks[i, ::]
@@ -130,9 +138,9 @@ def main():
         image_paths = [Path(path) for path in args.image_paths]
         images = [_load_images(path) for path in image_paths]
         images = torch.cat(images)
-        segmented = segmentator.run(images)
+        segmented, sidewalk_mask, background_mask = segmentator.run(images)
         writer = ImageWriter(save_path)
-        writer.write_images(images, segmented)
+        writer.write_images(images, segmented, sidewalk_mask, background_mask)
     else:
         image_paths = []
         mask_paths = []
@@ -147,9 +155,9 @@ def main():
         images = torch.cat(images)
         masks = np.array(masks)
 
-        segmented = segmentator.run(images)
+        segmented, sidewalk_mask, background_mask = segmentator.run(images)
         writer = ImageWriter(save_path)
-        writer.write_images(images, segmented, masks)
+        writer.write_images(images, segmented, sidewalk_mask, background_mask, masks)
 
 
 if __name__ == '__main__':

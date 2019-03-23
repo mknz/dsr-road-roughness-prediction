@@ -38,13 +38,18 @@ class SidewalkSegmentator:
 
     def run(self, images: torch.Tensor) -> np.array:
         X = images.to(self.device)
-        segmented = []
+        segmented_list = []
+        sidewalk_mask_list = []
+        background_mask_list = []
         for i in range(X.shape[0]):
             X_ = X[i, ::].unsqueeze(0)
             mask = self._sidewalk_detector.run(X_)
             surface = self._surface_segmentator.run(X_)
-            segmented.append(self._segmentate(mask, surface).squeeze())
-        return np.array(segmented)
+            segmented, sidewalk_mask, background_mask = self._segmentate(mask, surface)
+            segmented_list.append(segmented.squeeze())
+            sidewalk_mask_list.append(sidewalk_mask.squeeze())
+            background_mask_list.append(background_mask.squeeze())
+        return np.array(segmented_list), np.array(sidewalk_mask_list), np.array(background_mask_list)
 
     def _segmentate(self, mask: np.array, surface: np.array) -> np.array:
         # NOTE: This assumes channel index 0 is background
@@ -68,7 +73,7 @@ class SidewalkSegmentator:
         # Under threshold pixels are background
         segmented[background_mask] = 0
 
-        return segmented.astype(np.uint8)
+        return segmented.astype(np.uint8), sidewalk_mask, background_mask
 
 
 class BinarySegmentator:

@@ -10,7 +10,7 @@ def to_image(tensor: torch.Tensor):
 
 def get_device(use_cpu=True, device_id=0):
     if use_cpu:
-        device = 'cpu'
+        device = torch.device('cpu')
     else:
         device = torch.device(f'cuda:{device_id}' if torch.cuda.is_available() else "cpu")
     return device

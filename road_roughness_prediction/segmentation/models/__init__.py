@@ -13,6 +13,11 @@ def load_model(model_name: str, category_type: surface_types.SurfaceCategoryBase
             net = UNet11(pretrained=True)
         else:
             net = UNet11(num_classes=len(category_type), pretrained=True)
+    elif model_name == 'unet16':
+        if category_type == surface_types.BinaryCategory:
+            net = UNet16(pretrained=True)
+        else:
+            net = UNet16(num_classes=len(category_type), pretrained=True)
     else:
         raise ValueError(model_name)
 

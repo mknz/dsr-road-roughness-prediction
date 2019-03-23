@@ -33,6 +33,11 @@ class TestTraining:
         # Delete temp dir and all of its content
         shutil.rmtree(self.workdir)
 
+    def test_tiny_cnn_cpu(self):
+        args_ = self.args + ['--model-name', 'tiny_cnn']
+        args_ += ['--cpu']
+        subprocess.run(args_, check=True)
+
     def test_tiny_cnn(self):
         args_ = self.args + ['--model-name', 'tiny_cnn']
         subprocess.run(args_, check=True)

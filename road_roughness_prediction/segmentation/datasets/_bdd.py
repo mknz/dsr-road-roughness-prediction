@@ -1,9 +1,6 @@
 '''Surface Segmentation Dataset'''
-from abc import ABC
-from abc import abstractmethod
 from pathlib import Path
 from typing import List
-from typing import Tuple
 
 import torch
 from torch.utils.data import Dataset
@@ -13,33 +10,13 @@ from PIL import Image
 
 import numpy as np
 
-from .surface_types import convert_mask
 from .surface_types import BinaryCategory
+from ._datasets import SidewalkSegmentationDatasetBase
 
 
-class SidewalkSegmentationDatasetBase(ABC, Dataset):
-    '''Surface segmentation dataset base class'''
+class BddDataset(SidewalkSegmentationDatasetBase):
+    '''BDD 100K dataset'''
 
-    @property
-    @abstractmethod
-    def category_type(self):
-        pass
-
-    @abstractmethod
-    def get_raw_image(self, idx) -> Tuple[np.array, np.array]:
-        pass
-
-    @abstractmethod
-    def __getitem__(self, idx):
-        pass
-
-    @abstractmethod
-    def __len__(self) -> int:
-        pass
-
-
-class SidewalkSegmentationDataset(SidewalkSegmentationDatasetBase):
-    '''Surface segmentation dataset'''
     def __init__(
             self,
             image_paths,
@@ -78,7 +55,11 @@ class SidewalkSegmentationDataset(SidewalkSegmentationDatasetBase):
         image = np.array(image).astype(np.uint8)
 
         mask = np.array(Image.open(mask_path)).astype(np.uint8)
-        mask = convert_mask(mask, self.category_type)
+        if self.category_type == BinaryCategory:
+            mask[mask == 1] = 1
+            mask[mask != 1] = 0
+        else:
+            raise NotImplementedError
 
         data = {'image': image, 'mask': mask}
         augmented = self._transform(**data)
@@ -95,7 +76,8 @@ class SidewalkSegmentationDataset(SidewalkSegmentationDatasetBase):
         if self.category_type == BinaryCategory:
             Y = torch.from_numpy(mask).float().unsqueeze(0)
         else:
-            Y = torch.from_numpy(mask).long()
+            #Y = torch.from_numpy(mask).long()
+            raise NotImplementedError
 
         return dict(
             X=X,
@@ -115,8 +97,7 @@ class SidewalkSegmentationDataset(SidewalkSegmentationDatasetBase):
         return image, mask
 
 
-class SidewalkSegmentationDatasetFactory:
-    '''Factory class for SidewalkSegmentaionDataset'''
+class BddDatasetFactory:
 
     def __new__(
             cls,
@@ -125,18 +106,17 @@ class SidewalkSegmentationDatasetFactory:
             category_type,
             transform,
     ):
-
         total_image_paths = []
         total_mask_paths = []
         for image_dir, mask_dir in zip(image_dirs, mask_dirs):
             image_paths = sorted(list(image_dir.glob('*.jpg')))
             for image_path in image_paths:
-                mask_path = mask_dir / (image_path.stem + '.png')
+                mask_path = mask_dir / (image_path.stem + '_train_id.png')
                 assert mask_path.exists(), f'Not found {str(mask_path)}'
                 total_image_paths.append(image_path)
                 total_mask_paths.append(mask_path)
 
-        return SidewalkSegmentationDataset(
+        return BddDataset(
             total_image_paths,
             total_mask_paths,
             category_type,

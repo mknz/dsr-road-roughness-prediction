@@ -9,12 +9,17 @@ class TestTraining:
 
     workdir = Path(tempfile.mkdtemp())
 
-    image_dir = Path('tests/resources/segmentation/labelme')
+    image_dir = Path('tests/resources/segmentation/labelme/JPEGImages')
+    mask_dir = Path('tests/resources/segmentation/labelme/SegmentationClassPNG')
     args = [
         'python3',
         'train_seg.py',
-        '--train-data-dirs', str(image_dir), str(image_dir),  str(image_dir),
-        '--validation-data-dirs', str(image_dir), str(image_dir),  str(image_dir),
+        '--train-image-dirs', str(image_dir), str(image_dir), str(image_dir),
+        '--train-mask-dirs', str(mask_dir), str(mask_dir), str(mask_dir),
+        '--train-dataset-types', 'base', 'base', 'base',
+        '--validation-image-dirs', str(image_dir), str(image_dir), str(image_dir),
+        '--validation-mask-dirs', str(mask_dir), str(mask_dir), str(mask_dir),
+        '--validation-dataset-types', 'base', 'base', 'base',
         '--input-size', '64', '64',
         '--batch-size', '128',
         '--epochs', '2',
@@ -30,7 +35,17 @@ class TestTraining:
         args_ = self.args + ['--model-name', 'unet11']
         subprocess.run(args_, check=True, timeout=60)
 
+    def test_unet11_binary(self):
+        args_ = self.args + ['--model-name', 'unet11']
+        args_ += ['--cpu']
+        subprocess.run(args_, check=True, timeout=60)
+
     def test_unet11_simple(self):
         args_ = self.args + ['--model-name', 'unet11']
+        args_ += ['--category-type', 'simple']
+        subprocess.run(args_, check=True, timeout=60)
+
+    def test_unet16_simple(self):
+        args_ = self.args + ['--model-name', 'unet16']
         args_ += ['--category-type', 'simple']
         subprocess.run(args_, check=True, timeout=60)

@@ -63,7 +63,14 @@ class SimpleCategory(SurfaceCategoryBase):
     BICYCLE_TILES = 7
 
 
-COLORMAP = np.array(cm.jet(np.linspace(0, 255, 8).astype(np.uint8))[:, :3])
+# 0. to 1.
+_cm_index = np.linspace(0, 255, 8).astype(np.uint8)
+COLOR_MAP = np.array(cm.jet(_cm_index)[:, :3])
+COLOR_MAP[0, :] = 0., 0., 0.
+
+# 0 to 255
+COLOR_PALETTE = [0 for _ in range(768)]
+COLOR_PALETTE[:(COLOR_MAP.shape[0] * 3)] = (COLOR_MAP.flatten() * 255).astype(np.uint8)
 
 
 def convert_mask(mask, category_type):

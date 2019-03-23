@@ -19,6 +19,11 @@ from road_roughness_prediction.segmentation.inference import SidewalkSegmentator
 import road_roughness_prediction.tools.torch as torch_tools
 
 
+def _blend_image(original, segmented):
+    blend = Image.blend(original.convert('RGB'), segmented.convert('RGB'), alpha=0.2)
+    return blend
+
+
 class ImageWriter:
 
     def __init__(self, save_dir: Path) -> None:
@@ -41,7 +46,7 @@ class ImageWriter:
             if not dir_.exists():
                 dir_.mkdir()
 
-    def write_images(self, inputs, segmented, masks):
+    def write_images(self, inputs, segmented, masks=None):
         n_batches = segmented.shape[0]
         for i in range(n_batches):
             file_name = f'{self._counter:05d}'
@@ -55,32 +60,31 @@ class ImageWriter:
             save_path = self.output_dir / (file_name + '.png')
             out_seg_index_img.save(save_path)
 
-            target_img = masks[i, ::]
-            target_index_img = utils.create_index_image(target_img)
-            save_path = self.target_dir / (file_name + '.png')
-            target_index_img.save(save_path)
-
-            blend_output_img = self._blend_image(input_img, out_seg_index_img)
+            blend_output_img = _blend_image(input_img, out_seg_index_img)
             save_path = self.blend_output_dir / (file_name + '.jpg')
             blend_output_img.save(save_path)
 
-            blend_target_img = self._blend_image(input_img, target_index_img)
-            save_path = self.blend_target_dir / (file_name + '.jpg')
-            blend_target_img.save(save_path)
+            if masks:
+                target_img = masks[i, ::]
+                target_index_img = utils.create_index_image(target_img)
+                save_path = self.target_dir / (file_name + '.png')
+                target_index_img.save(save_path)
+
+                blend_target_img = _blend_image(input_img, target_index_img)
+                save_path = self.blend_target_dir / (file_name + '.jpg')
+                blend_target_img.save(save_path)
 
             self._counter += 1
-
-    def _blend_image(self, original, segmented):
-        blend = Image.blend(original.convert('RGB'), segmented.convert('RGB'), alpha=0.2)
-        return blend
-
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--sidewalk-detector-weight-path', required=True)
     parser.add_argument('--surface-segmentator-weight-path', required=True)
-    parser.add_argument('--image-dirs', required=True, type=str, nargs='+')
-    parser.add_argument('--mask-dirs', required=True, type=str, nargs='+')
+
+    parser.add_argument('--image-dirs', type=str, nargs='+')
+    parser.add_argument('--mask-dirs', type=str, nargs='+')
+    parser.add_argument('--image-paths', type=str, nargs='+')
+
     parser.add_argument('--save-path', default='forward')
     parser.add_argument('--cpu', action='store_true')
     parser.add_argument('--device-id', type=int, default=0)
@@ -108,13 +112,6 @@ def main():
         device=device,
     )
 
-    image_paths = []
-    mask_paths = []
-    for image_dir, mask_dir in zip(args.image_dirs, args.mask_dirs):
-        image_paths.extend(sorted(list(Path(image_dir).glob('*jpg'))))
-        mask_paths.extend(sorted(list(Path(mask_dir).glob('*png'))))
-    assert len(image_paths) == len(mask_paths)
-
     category_type = surface_types.from_string('simple')
 
     def _load_images(path):
@@ -129,15 +126,30 @@ def main():
         mask = surface_types.convert_mask(mask, category_type)
         return mask
 
-    images = [_load_images(path) for path in image_paths]
-    masks = [_load_mask(path) for path in mask_paths]
+    if args.image_paths:
+        image_paths = [Path(path) for path in args.image_paths]
+        images = [_load_images(path) for path in image_paths]
+        images = torch.cat(images)
+        segmented = segmentator.run(images)
+        writer = ImageWriter(save_path)
+        writer.write_images(images, segmented)
+    else:
+        image_paths = []
+        mask_paths = []
+        for image_dir, mask_dir in zip(args.image_dirs, args.mask_dirs):
+            image_paths.extend(sorted(list(Path(image_dir).glob('*jpg'))))
+            mask_paths.extend(sorted(list(Path(mask_dir).glob('*png'))))
+        assert len(image_paths) == len(mask_paths)
 
-    images = torch.cat(images)
-    masks = np.array(masks)
+        images = [_load_images(path) for path in image_paths]
+        masks = [_load_mask(path) for path in mask_paths]
 
-    segmented = segmentator.run(images)
-    writer = ImageWriter(save_path)
-    writer.write_images(images, segmented, masks)
+        images = torch.cat(images)
+        masks = np.array(masks)
+
+        segmented = segmentator.run(images)
+        writer = ImageWriter(save_path)
+        writer.write_images(images, segmented, masks)
 
 
 if __name__ == '__main__':

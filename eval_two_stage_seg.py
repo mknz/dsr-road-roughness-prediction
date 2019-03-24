@@ -72,7 +72,7 @@ class ImageWriter:
             save_path = self.sidewalk_mask_dir / (file_name + '.png')
             img_.save(save_path)
 
-            if masks:
+            if masks is not None:
                 target_img = masks[i, ::]
                 target_index_img = utils.create_index_image(target_img)
                 save_path = self.target_dir / (file_name + '.png')

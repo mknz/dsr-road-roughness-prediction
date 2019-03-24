@@ -20,11 +20,11 @@ class SidewalkSegmentator:
             surface_segmentator_weight_path: Path,
             device: torch.device,
             thr_sidewalk=0.5,
-            thr_min_background=-0.2,
+            thr_background=0.5,
     ) -> None:
         self.device = device
         self.thr_sidewalk = thr_sidewalk
-        self.thr_min_background = thr_min_background
+        self.thr_background = thr_background
 
         self._sidewalk_detector = BinarySegmentator(
             sidewalk_detector_weight_path,
@@ -59,10 +59,9 @@ class SidewalkSegmentator:
         sidewalk_mask = np.full(out_shape, False)
         sidewalk_mask[mask[:, 0, ::] >= self.thr_sidewalk]  = True
 
-        # Pixels are considered to be sidewalk only if background prob < thr_min_background
         background_prob = surface[:, 0, ::]
-        background_mask = np.full(out_shape, True)
-        background_mask[background_prob < self.thr_min_background] = False
+        background_mask = np.full(out_shape, False)
+        background_mask[background_prob > self.thr_background] = True
 
         # Segmentation excluding background
         segmented = surface[:, 1:, ::].argmax(axis=1) + 1
@@ -70,7 +69,6 @@ class SidewalkSegmentator:
         # Outside sidewalk pixels are background
         segmented[~sidewalk_mask] = 0
 
-        # Under threshold pixels are background
         segmented[background_mask] = 0
 
         return segmented.astype(np.uint8), sidewalk_mask, background_mask
@@ -95,7 +93,7 @@ class BinarySegmentator:
         self.net.eval()
         with torch.no_grad():
             out = self.net.forward(images)
-        return out.cpu().numpy()
+        return torch.sigmoid(out).cpu().numpy()
 
 
 class MultiClassSegmentator:
@@ -117,4 +115,4 @@ class MultiClassSegmentator:
         self.net.eval()
         with torch.no_grad():
             out = self.net.forward(images)
-        return out.cpu().numpy()
+        return torch.sigmoid(out).cpu().numpy()

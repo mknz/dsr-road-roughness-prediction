@@ -58,6 +58,6 @@ class TestSegmentationEvaluation:
             surface_segmentator_weight_path=self.surface_segmentator_weight_path,
             device=get_device(use_cpu=True)
         )
-        segmented = segmentator.run(images)
+        segmented, _, _ = segmentator.run(images)
         n_batch, _, height, width = images.shape
         assert segmented.shape == (n_batch, self.input_size[1], self.input_size[0])

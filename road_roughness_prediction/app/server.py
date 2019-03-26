@@ -1,6 +1,11 @@
 '''Segmentator app server'''
 from functools import wraps
+import io
 import time
+import os
+from urllib.parse import quote
+from base64 import b64encode
+
 
 from flask import Flask
 from flask import flash
@@ -9,9 +14,12 @@ from flask import redirect
 from flask import make_response
 from flask import render_template
 
+import requests
+
 from PIL import Image
 
 from albumentations.augmentations.functional import center_crop
+from albumentations.augmentations.functional import resize
 
 import torch
 from torchvision.transforms.functional import to_pil_image
@@ -63,7 +71,8 @@ def load_segmentator():
 
 def preprocessing(image: np.array) -> torch.Tensor:
     height, width = 640, 640
-    image = center_crop(image, height, width)
+    #image = center_crop(image, height, width)
+    image = resize(image, height, width)
     image = torch_tools.imagenet_normalize(image)
     return to_tensor(image).squeeze().unsqueeze(0)
 
@@ -117,18 +126,34 @@ def postprocessing(inputs, segmented, sidewalk_mask, background_mask):
 
 def create_app() -> Flask:
     app = Flask(__name__)
+    app.secret_key = os.environ.get('SIDEWALK_APP_SECRET_KEY')
 
     segmentator = load_segmentator()
 
     @app.route('/', methods=['GET', 'POST'])
     def upload():
         if request.method == 'POST':
-
+            image_url = request.form.get('image_url')
+            if image_url and image_url != '':
+                print(image_url)
+                resp = requests.get(image_url)
+                if resp.status_code != 200:
+                    flash('Invalid url')
+                    return redirect(request.url)
+                with io.BytesIO() as buf:
+                    buf.write(resp.content)
+                    buf.seek(0)
+                    img = np.array(Image.open(buf))[:, :, :3]
+                summary, out_image = predict(img, segmentator)
+                bytes_ = utils.pil_image_to_bytes(out_image, format='JPEG')
+                encoded_image = b64encode(bytes_).decode('ascii')
+                out_image_url = f'data:image/jpeg;base64,{quote(encoded_image)}'
+                return render_template('prediction.html', out_image_url=out_image_url, summary=summary)
             # check if the post request has the file part
-            if 'file' not in request.files:
+            if 'image_file' not in request.files:
                 flash('No file part')
                 return redirect(request.url)
-            file_ = request.files['file']
+            file_ = request.files['image_file']
 
             # if user does not select file, browser also
             # submit an empty part without filename
@@ -140,10 +165,6 @@ def create_app() -> Flask:
                 img = np.array(Image.open(file_))[:, :, :3]
                 summary, out_image = predict(img, segmentator)
                 bytes_ = utils.pil_image_to_bytes(out_image, format='JPEG')
-
-                from urllib.parse import quote
-                from base64 import b64encode
-
                 encoded_image = b64encode(bytes_).decode('ascii')
                 out_image_url = f'data:image/jpeg;base64,{quote(encoded_image)}'
                 return render_template('prediction.html', out_image_url=out_image_url, summary=summary)

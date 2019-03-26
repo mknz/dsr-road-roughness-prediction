@@ -187,7 +187,7 @@ def main():
             [image_dir],
             [mask_dir],
             category_type,
-            transform[dataset_type],
+            transforms[dataset_type],
         )
         train_datasets.append(_dataset)
 

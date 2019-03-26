@@ -58,8 +58,8 @@ def measure_time(func):
 
 @measure_time
 def load_segmentator():
-    sidewalk_detector_weight_path = './resources/segmentator/weight_binary.pth'
-    surface_segmentator_weight_path = './resources/segmentator/weight_multi.pth'
+    sidewalk_detector_weight_path = './resources/segmentation/weight_binary.pth'
+    surface_segmentator_weight_path = './resources/segmentation/weight_multi.pth'
     device = torch.device('cpu')
     segmentator = SidewalkSegmentator(
         sidewalk_detector_weight_path=sidewalk_detector_weight_path,

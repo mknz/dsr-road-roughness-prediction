@@ -1,4 +1,6 @@
-# dsr-road-roughness-prediction
+# Sidewalk Semantic Segmentation
+
+![logo](./road_roughness_prediction/app/static/logo.png)
 
 [![Build Status](https://travis-ci.com/mknz/dsr-road-roughness-prediction.svg?branch=master)](https://travis-ci.com/mknz/dsr-road-roughness-prediction)
 
@@ -11,7 +13,7 @@ python -m pytest tests
 ## Run interactive tests (This shows some images)
 
 ```
-python -m pytest tests --interactive
+python -m pytest tests -m interactive --interactive
 ```
 
 ## See training logs using tensorboard

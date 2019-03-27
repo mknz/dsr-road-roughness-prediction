@@ -21,7 +21,7 @@
             <div><input type=text name=image_url placeholder="image url"></div>
             <div><input type=submit value=Predict onclick="$('#loading').show();"></div>
           </form>
-          <div id="loading" style="display:none;"><img src="static/loading1.gif" alt="" />Making a prediction...</div>
+          <div id="loading" style="display:none;"><img src="{{ url_for('static', filename='loading1.gif') }}" alt="" />Making a prediction...</div>
         </div>
     </div>
     <!-- Optional JavaScript -->

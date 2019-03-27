@@ -1,33 +1,34 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <!-- Required meta tags -->
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+{% extends 'layout.html' %}
+{% block content %}
+<div class="p-3 m-3 col-md-12">
+  <div class="col-md-6 offset-md-3">
+    <h3>Upload image</h3>
+    <form method=post enctype=multipart/form-data>
+      <div class="mb-3"><input type=file name=image_file class="form-control-file border"></div>
+      <div class="mb-3"><input type=text name=image_url placeholder="image url" class="form-control"></div>
+      <div class="mb-3"><input type=submit class="btn btn-outline-primary" value=Predict onclick="$('#loading').show();"></div>
+      <div id="loading" style="display:none;"><img src="{{ url_for('static', filename='loading1.gif') }}" alt="" />Making a prediction...</div>
+    </form>
+  </div>
+  <div class="row lead font-weight-normal">
+<p class="font-weight-light">Sidewalk surface type is critical for navigating pedestrians.
+Especially for wheelchair users, bicycle riders or skaters, surface
+type dramatically affects the comfortability in the mobility. A large
+number of street images are available on the web, but for the
+sidewalk, they typically lack surface labels such as smooth pavement
+or rough cobblestones. Detecting sidewalk area in complex street
+images is another challenge.</p>
 
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+<p>Here we propose a system that detects sidewalk and classifies surface
+type from street view images. We built a two-stage classifier that
+first identifies sidewalk area, and then categorizes within sidewalk
+region.</p>
 
-    <title>Sidewalk Semantic Segmentation</title>
-  </head>
-  <body>
-    <header class="bg-primary text-white text-center">
-      <h1>Sidewalk Semantic Segmentation</h1>
-    </header>
-    <div class="container">
-        <div class="p-3 m-3 col-md-12">
-          <form method=post enctype=multipart/form-data>
-            <div><input type=file name=image_file></div>
-            <div><input type=text name=image_url placeholder="image url"></div>
-            <div><input type=submit value=Predict onclick="$('#loading').show();"></div>
-          </form>
-          <div id="loading" style="display:none;"><img src="{{ url_for('static', filename='loading1.gif') }}" alt="" />Making a prediction...</div>
-        </div>
-    </div>
-    <!-- Optional JavaScript -->
-    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
-  </body>
-</html>
+<p>Our system can tell users characteristics of sidewalk in specified
+points in the streets. Another application is to use it to annotate
+sidewalk surface types in crowdsourcing street maps like
+OpenStreetMap. In the future, we can increase the number of categories
+in the prediction and also assign them actual roughness values, possibly by combining accelerometer data.</p>
+  </div>
+</div>
+{% endblock %}

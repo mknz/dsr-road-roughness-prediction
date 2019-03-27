@@ -144,6 +144,7 @@ def create_app() -> Flask:
                     buf.write(resp.content)
                     buf.seek(0)
                     img = np.array(Image.open(buf))[:, :, :3]
+
                 summary, out_image = predict(img, segmentator)
                 bytes_ = utils.pil_image_to_bytes(out_image, format='JPEG')
                 encoded_image = b64encode(bytes_).decode('ascii')

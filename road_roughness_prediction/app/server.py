@@ -146,13 +146,10 @@ def is_valid_url(url):
 
     r = urlparse(url)
 
-    if r.scheme != '':
+    if r.scheme == '':
         return False
 
-    if r.netloc != '':
-        return False
-
-    if allowed_file(r.path):
+    if r.netloc == '':
         return False
 
     return True

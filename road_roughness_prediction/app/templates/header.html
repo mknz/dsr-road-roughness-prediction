@@ -1,12 +1,16 @@
 <header class="bg-light">
   <nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <a class="navbar-brand" href="#">
+    <a class="navbar-brand" href="{{ url_for('upload') }}">
       <img src="{{ url_for('static', filename='logo.png') }}" width=165 height=142\>
     </a>
     <ul class="navbar-nav ml-auto">
       <li class="nav-item active">
-        <a class="nav-link" href="{{url_for('upload')}}">Home <span class="sr-only">(current)</span></a>
+        <a class="nav-link" href="{{ url_for('upload') }}">Home <span class="sr-only">(current)</span></a>
       </li>
+      <li class="nav-item active">
+        <a class="nav-link" href="https://github.com/mknz/dsr-road-roughness-prediction">GitHub <span class="sr-only">(current)</span></a>
+      </li>
+
     </ul>
   </nav>
 </header>

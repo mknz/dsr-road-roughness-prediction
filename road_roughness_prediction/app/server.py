@@ -4,6 +4,7 @@ import io
 import time
 import os
 from urllib.parse import quote
+from urllib.parse import urlparse
 from base64 import b64encode
 
 
@@ -81,14 +82,13 @@ def load_segmentator():
 
 def preprocessing(image: np.array) -> torch.Tensor:
     height, width = 640, 640
-    #image = center_crop(image, height, width)
     image = resize(image, height, width)
     image = torch_tools.imagenet_normalize(image)
     return to_tensor(image).squeeze().unsqueeze(0)
 
 
 @measure_time
-def predict(image, segmentator) -> str:
+def predict(image, segmentator):
     images = preprocessing(image)
     segmented, sidewalk_mask, background_mask = segmentator.run(images)
     labels, counts = np.unique(segmented, return_counts=True)
@@ -134,6 +134,30 @@ def postprocessing(inputs, segmented, sidewalk_mask, background_mask):
     return blend_output_img
 
 
+def is_valid_url(url):
+
+    MAX_LENGTH = 1000
+
+    if not url:
+        return False
+
+    if len(url) > MAX_LENGTH:
+        return False
+
+    r = urlparse(url)
+
+    if r.scheme != '':
+        return False
+
+    if r.netloc != '':
+        return False
+
+    if allowed_file(r.path):
+        return False
+
+    return True
+
+
 def create_app() -> Flask:
     app = Flask(__name__)
     app.secret_key = os.environ.get('SIDEWALK_APP_SECRET_KEY')
@@ -144,36 +168,41 @@ def create_app() -> Flask:
     def upload():
         if request.method == 'POST':
             image_url = request.form.get('image_url')
-            if image_url and image_url != '':
-                print(image_url)
-                resp = requests.get(image_url)
-                if resp.status_code != 200:
-                    flash('Invalid url')
-                    return redirect(request.url)
-                with io.BytesIO() as buf:
-                    buf.write(resp.content)
-                    buf.seek(0)
-                    img = np.array(Image.open(buf))[:, :, :3]
+            if not is_valid_url(image_url):
+                flash('Invalid url', 'warning')
+                return redirect(request.url)
 
-                summary, out_image = predict(img, segmentator)
-                bytes_ = utils.pil_image_to_bytes(out_image, format='JPEG')
-                encoded_image = b64encode(bytes_).decode('ascii')
-                out_image_url = f'data:image/jpeg;base64,{quote(encoded_image)}'
-                return render_template(
-                    'prediction.html',
-                    out_image_url=out_image_url, summary=summary,
-                    config=config,
-                )
+            resp = requests.get(image_url)
+            if resp.status_code != 200:
+                flash('Cannot get image', 'warning')
+                return redirect(request.url)
+
+            with io.BytesIO() as buf:
+                buf.write(resp.content)
+                buf.seek(0)
+                img = np.array(Image.open(buf))[:, :, :3]
+
+            summary, out_image = predict(img, segmentator)
+            bytes_ = utils.pil_image_to_bytes(out_image, format='JPEG')
+            encoded_image = b64encode(bytes_).decode('ascii')
+            out_image_url = f'data:image/jpeg;base64,{quote(encoded_image)}'
+
+            return render_template(
+                'prediction.html',
+                out_image_url=out_image_url, summary=summary,
+                config=config,
+            )
+
             # check if the post request has the file part
             if 'image_file' not in request.files:
-                flash('No file part')
+                flash('No file part', 'warning')
                 return redirect(request.url)
             file_ = request.files['image_file']
 
             # if user does not select file, browser also
             # submit an empty part without filename
             if file_.filename == '':
-                flash('No selected file')
+                flash('No selected file', 'warning')
                 return redirect(request.url)
 
             if file_ and allowed_file(file_.filename):

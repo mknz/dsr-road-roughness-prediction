@@ -1,17 +1,38 @@
 {% extends 'layout.html' %}
 {% block content %}
-<div class="p-3 m-3 col-md-12">
+<div class="col-md-12">
   <div class="col-md-6 offset-md-3">
-    <h3>Upload image</h3>
+    <div class="font-weight-light mt-4">
+      <p>Sidewalk surface type is critical for navigating pedestrians.
+      Especially for wheelchair users, bicycle riders or skaters, surface
+      type dramatically affects the comfortability in the mobility. A large
+      number of street images are available on the web, but for the
+      sidewalk, they typically lack surface labels such as smooth pavement
+      or rough cobblestones. Detecting sidewalk area in complex street
+      images is another challenge.</p>
+
+      <p>Here we propose a system that detects sidewalk and classifies surface
+      type from street view images. We built a two-stage classifier that
+      first identifies sidewalk area, and then categorizes within sidewalk
+      region.</p>
+
+      <p>Our system can tell users characteristics of sidewalk in specified
+      points in the streets. Another application is to use it to annotate
+      sidewalk surface types in crowdsourcing street maps like
+      OpenStreetMap. In the future, we can increase the number of categories
+      in the prediction and also assign them actual roughness values,
+      possibly by combining accelerometer data.</p>
+    </div>
+    <h4>Upload a sidewalk image</h4>
     <form method=post enctype=multipart/form-data>
       <div class="mb-3"><input type=file name=image_file class="form-control-file border"></div>
-      <div class="mb-3"><input id="image-url" type=text name=image_url placeholder="image url" class="form-control"></div>
-      <div class="mb-3"><input type=submit class="btn btn-outline-primary" value=Predict onclick="$('#loading').show();"></div>
+      <div class="mb-3"><input id="image-url" type=text name=image_url placeholder="Paste image url here" class="form-control"></div>
+      <div class="mb-3"><input type=submit class="btn btn-primary btn-lg" value=Predict onclick="$('#loading').show();"></div>
       <div id="loading" style="display:none;"><img src="{{ url_for('static', filename='loading1.gif') }}" alt="" />Making a prediction...</div>
     </form>
 
   <input type=submit id="street-view-static-image-btn" class="btn btn-outline-primary mt-1 mb-1" value="Load url of this view" onclick="predict_street_view();">
-  <div id="street-view"></div>
+  <div id="street-view" class="mb-3"></div>
   <script>
     var panorama;
     function initialize() {
@@ -42,26 +63,5 @@
   </script>
   </div>
 
-  <div class="row lead font-weight-light mt-4">
-    <p>Sidewalk surface type is critical for navigating pedestrians.
-    Especially for wheelchair users, bicycle riders or skaters, surface
-    type dramatically affects the comfortability in the mobility. A large
-    number of street images are available on the web, but for the
-    sidewalk, they typically lack surface labels such as smooth pavement
-    or rough cobblestones. Detecting sidewalk area in complex street
-    images is another challenge.</p>
-
-    <p>Here we propose a system that detects sidewalk and classifies surface
-    type from street view images. We built a two-stage classifier that
-    first identifies sidewalk area, and then categorizes within sidewalk
-    region.</p>
-
-    <p>Our system can tell users characteristics of sidewalk in specified
-    points in the streets. Another application is to use it to annotate
-    sidewalk surface types in crowdsourcing street maps like
-    OpenStreetMap. In the future, we can increase the number of categories
-    in the prediction and also assign them actual roughness values,
-    possibly by combining accelerometer data.</p>
-  </div>
 </div>
 {% endblock %}

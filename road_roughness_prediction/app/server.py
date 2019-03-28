@@ -166,7 +166,7 @@ def create_app() -> Flask:
             image_url = request.form.get('image_url')
             if not is_valid_url(image_url):
                 flash('Invalid url', 'warning')
-                return redirect(request.url)
+                return render_template('index.html', config=config)
 
             resp = requests.get(image_url)
             if resp.status_code != 200:

@@ -1,7 +1,5 @@
 {% extends 'layout.html' %}
 {% block content %}
-<div class="col-md-12">
-  <div class="col-md-6 offset-md-3">
     <div class="font-weight-light mt-4">
       <p>Sidewalk surface type is critical for navigating pedestrians.
       Especially for wheelchair users, bicycle riders or skaters, surface
@@ -28,11 +26,11 @@
       <div class="mb-3"><input type=file name=image_file class="form-control-file border"></div>
       <div class="mb-3"><input id="image-url" type=text name=image_url placeholder="Paste image url here" class="form-control"></div>
       <div class="mb-3"><input id="predict-btn" type=submit class="btn btn-outline-primary btn-lg" value=Predict onclick="$('#loading').show();"></div>
-      <div id="loading" style="display:none;"><img src="{{ url_for('static', filename='loading1.gif') }}" alt="" />Making a prediction...</div>
+      <div id="loading" style="display:none;"><img src="{{ url_for('static', filename='loading1.gif') }}" alt="" />&nbsp; Making a prediction...</div>
     </form>
 
   <input type=submit id="street-view-static-image-btn" class="btn btn-outline-primary mt-1 mb-1" value="Predict this view" onclick="predict_street_view();">
-  <div id="street-view" class="mb-3"></div>
+  <div id="street-view"></div>
   <script>
     var panorama;
     function initialize() {
@@ -63,7 +61,4 @@
   <script async defer
           src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAP_API_KEY }}&callback=initialize">
   </script>
-  </div>
-
-</div>
 {% endblock %}

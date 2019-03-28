@@ -12,14 +12,12 @@ from flask import Flask
 from flask import flash
 from flask import request
 from flask import redirect
-from flask import make_response
 from flask import render_template
 
 import requests
 
 from PIL import Image
 
-from albumentations.augmentations.functional import center_crop
 from albumentations.augmentations.functional import resize
 
 import torch
@@ -134,7 +132,8 @@ def postprocessing(inputs, segmented, sidewalk_mask, background_mask):
     return blend_output_img
 
 
-def is_valid_url(url):
+def is_valid_url(url: str):
+    '''Validate url string'''
 
     MAX_LENGTH = 1000
 
@@ -174,10 +173,14 @@ def create_app() -> Flask:
                 flash('Cannot get image', 'warning')
                 return redirect(request.url)
 
-            with io.BytesIO() as buf:
-                buf.write(resp.content)
-                buf.seek(0)
-                img = np.array(Image.open(buf))[:, :, :3]
+            try:
+                with io.BytesIO() as buf:
+                    buf.write(resp.content)
+                    buf.seek(0)
+                    img = np.array(Image.open(buf))[:, :, :3]
+            except:
+                flash('Not an image url', 'warning')
+                return redirect(request.url)
 
             summary, out_image = predict(img, segmentator)
             bytes_ = utils.pil_image_to_bytes(out_image, format='JPEG')

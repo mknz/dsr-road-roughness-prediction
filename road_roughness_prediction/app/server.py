@@ -171,7 +171,7 @@ def create_app() -> Flask:
             resp = requests.get(image_url)
             if resp.status_code != 200:
                 flash('Cannot get image', 'warning')
-                return redirect(request.url)
+                return render_template('index.html', config=config)
 
             try:
                 with io.BytesIO() as buf:
@@ -180,7 +180,7 @@ def create_app() -> Flask:
                     img = np.array(Image.open(buf))[:, :, :3]
             except:
                 flash('Not an image url', 'warning')
-                return redirect(request.url)
+                return render_template('index.html', config=config)
 
             summary, out_image = predict(img, segmentator)
             bytes_ = utils.pil_image_to_bytes(out_image, format='JPEG')
@@ -196,14 +196,14 @@ def create_app() -> Flask:
             # check if the post request has the file part
             if 'image_file' not in request.files:
                 flash('No file part', 'warning')
-                return redirect(request.url)
+                return render_template('index.html', config=config)
             file_ = request.files['image_file']
 
             # if user does not select file, browser also
             # submit an empty part without filename
             if file_.filename == '':
                 flash('No selected file', 'warning')
-                return redirect(request.url)
+                return render_template('index.html', config=config)
 
             if file_ and allowed_file(file_.filename):
                 img = np.array(Image.open(file_))[:, :, :3]

@@ -153,6 +153,9 @@ def main():
         ], p=1.0)
     ])
 
+    # BDD dataset
+    transforms['bdd'] = transforms['base']
+
     # Always shrink to 22% - 50%
     transforms['walk'] = Compose([
         HorizontalFlip(p=0.5),

@@ -7,6 +7,7 @@ import numpy as np
 from PIL import Image
 
 from road_roughness_prediction.segmentation.datasets import surface_types
+from road_roughness_prediction.tools import confusion_matrix as cm
 
 
 def compute_confusion_matrix(true, pred, n_classes):
@@ -78,6 +79,12 @@ def _print_summary(metrics):
     print()
 
 
+def _crunch_background(cm):
+    cm_ = np.vstack([cm[:4, :].sum(axis=0), cm[4:, :]])
+    cm_crunch = np.hstack([cm_[:, :4].sum(axis=1).reshape(-1, 1), cm_[:, 4:]])
+    return cm_crunch.astype(np.uint64)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data-dir', required=True)
@@ -101,6 +108,15 @@ def main():
     print('confusion_matrix')
     print(confusion_matrix)
     print()
+    np.save('report.npy', confusion_matrix)
+
+    cm_crunch = _crunch_background(confusion_matrix)
+    classes = ['Background', 'Flat Stones', 'Pavement Stones', 'Sett', 'Bicycle Titles']
+
+    fig = cm.plot_confusion_matrix(cm_crunch, classes, normalize=True)
+    fig.savefig('cm_norm.png')
+    fig = cm.plot_confusion_matrix(cm_crunch, classes, normalize=False)
+    fig.savefig('cm.png')
 
     metrics = calc_metrics(confusion_matrix)
     print('ALL')

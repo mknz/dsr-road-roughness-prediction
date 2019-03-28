@@ -27,11 +27,11 @@
     <form method=post enctype=multipart/form-data>
       <div class="mb-3"><input type=file name=image_file class="form-control-file border"></div>
       <div class="mb-3"><input id="image-url" type=text name=image_url placeholder="Paste image url here" class="form-control"></div>
-      <div class="mb-3"><input type=submit class="btn btn-primary btn-lg" value=Predict onclick="$('#loading').show();"></div>
+      <div class="mb-3"><input id="predict-btn" type=submit class="btn btn-outline-primary btn-lg" value=Predict onclick="$('#loading').show();"></div>
       <div id="loading" style="display:none;"><img src="{{ url_for('static', filename='loading1.gif') }}" alt="" />Making a prediction...</div>
     </form>
 
-  <input type=submit id="street-view-static-image-btn" class="btn btn-outline-primary mt-1 mb-1" value="Load url of this view" onclick="predict_street_view();">
+  <input type=submit id="street-view-static-image-btn" class="btn btn-outline-primary mt-1 mb-1" value="Predict this view" onclick="predict_street_view();">
   <div id="street-view" class="mb-3"></div>
   <script>
     var panorama;
@@ -56,6 +56,8 @@
       var GOOGLE_MAP_API_KEY = "{{ config.GOOGLE_MAP_API_KEY }}";
       var url = `https://maps.googleapis.com/maps/api/streetview?size=${width}x${height}&location=${lat},${lng}&heading=${heading}&pitch=${pitch}&key=${GOOGLE_MAP_API_KEY}`;
       document.getElementById('image-url').value = url;
+      document.getElementById('predict-btn').click();
+
     }
   </script>
   <script async defer

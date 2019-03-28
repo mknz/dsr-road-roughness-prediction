@@ -5,30 +5,63 @@
     <h3>Upload image</h3>
     <form method=post enctype=multipart/form-data>
       <div class="mb-3"><input type=file name=image_file class="form-control-file border"></div>
-      <div class="mb-3"><input type=text name=image_url placeholder="image url" class="form-control"></div>
+      <div class="mb-3"><input id="image-url" type=text name=image_url placeholder="image url" class="form-control"></div>
       <div class="mb-3"><input type=submit class="btn btn-outline-primary" value=Predict onclick="$('#loading').show();"></div>
       <div id="loading" style="display:none;"><img src="{{ url_for('static', filename='loading1.gif') }}" alt="" />Making a prediction...</div>
     </form>
+
+  <input type=submit id="street-view-static-image-btn" class="btn btn-outline-primary mt-1 mb-1" value="Load url of this view" onclick="predict_street_view();">
+  <div id="street-view"></div>
+  <script>
+    var panorama;
+    function initialize() {
+      panorama = new google.maps.StreetViewPanorama(
+          document.getElementById('street-view'),
+          {
+            position: {lat: 52.5022013, lng: 13.3421314},
+            pov: {heading: 30.49, pitch: 6},
+            zoom: 1
+          });
+    }
+  </script>
+  <script>
+    function predict_street_view() {
+      var lat = panorama.getPosition().lat();
+      var lng = panorama.getPosition().lng();
+      var heading = panorama.getPov().heading;
+      var pitch = panorama.getPov().pitch;
+      var width = 640;
+      var height = 640;
+      var GOOGLE_MAP_API_KEY = "{{ config.GOOGLE_MAP_API_KEY }}";
+      var url = `https://maps.googleapis.com/maps/api/streetview?size=${width}x${height}&location=${lat},${lng}&heading=${heading}&pitch=${pitch}&key=${GOOGLE_MAP_API_KEY}`;
+      document.getElementById('image-url').value = url;
+    }
+  </script>
+  <script async defer
+          src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAP_API_KEY }}&callback=initialize">
+  </script>
   </div>
-  <div class="row lead font-weight-normal">
-<p class="font-weight-light">Sidewalk surface type is critical for navigating pedestrians.
-Especially for wheelchair users, bicycle riders or skaters, surface
-type dramatically affects the comfortability in the mobility. A large
-number of street images are available on the web, but for the
-sidewalk, they typically lack surface labels such as smooth pavement
-or rough cobblestones. Detecting sidewalk area in complex street
-images is another challenge.</p>
 
-<p>Here we propose a system that detects sidewalk and classifies surface
-type from street view images. We built a two-stage classifier that
-first identifies sidewalk area, and then categorizes within sidewalk
-region.</p>
+  <div class="row lead font-weight-light mt-4">
+    <p>Sidewalk surface type is critical for navigating pedestrians.
+    Especially for wheelchair users, bicycle riders or skaters, surface
+    type dramatically affects the comfortability in the mobility. A large
+    number of street images are available on the web, but for the
+    sidewalk, they typically lack surface labels such as smooth pavement
+    or rough cobblestones. Detecting sidewalk area in complex street
+    images is another challenge.</p>
 
-<p>Our system can tell users characteristics of sidewalk in specified
-points in the streets. Another application is to use it to annotate
-sidewalk surface types in crowdsourcing street maps like
-OpenStreetMap. In the future, we can increase the number of categories
-in the prediction and also assign them actual roughness values, possibly by combining accelerometer data.</p>
+    <p>Here we propose a system that detects sidewalk and classifies surface
+    type from street view images. We built a two-stage classifier that
+    first identifies sidewalk area, and then categorizes within sidewalk
+    region.</p>
+
+    <p>Our system can tell users characteristics of sidewalk in specified
+    points in the streets. Another application is to use it to annotate
+    sidewalk surface types in crowdsourcing street maps like
+    OpenStreetMap. In the future, we can increase the number of categories
+    in the prediction and also assign them actual roughness values,
+    possibly by combining accelerometer data.</p>
   </div>
 </div>
 {% endblock %}

@@ -37,6 +37,16 @@ from road_roughness_prediction.segmentation import utils
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
 
 
+class Config:
+    def __init__(self):
+        _key = os.environ.get('GOOGLE_MAP_API_KEY')
+        assert _key
+        self.GOOGLE_MAP_API_KEY = _key
+
+
+config = Config()
+
+
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -149,7 +159,11 @@ def create_app() -> Flask:
                 bytes_ = utils.pil_image_to_bytes(out_image, format='JPEG')
                 encoded_image = b64encode(bytes_).decode('ascii')
                 out_image_url = f'data:image/jpeg;base64,{quote(encoded_image)}'
-                return render_template('prediction.html', out_image_url=out_image_url, summary=summary)
+                return render_template(
+                    'prediction.html',
+                    out_image_url=out_image_url, summary=summary,
+                    config=config,
+                )
             # check if the post request has the file part
             if 'image_file' not in request.files:
                 flash('No file part')
@@ -168,9 +182,12 @@ def create_app() -> Flask:
                 bytes_ = utils.pil_image_to_bytes(out_image, format='JPEG')
                 encoded_image = b64encode(bytes_).decode('ascii')
                 out_image_url = f'data:image/jpeg;base64,{quote(encoded_image)}'
-                return render_template('prediction.html', out_image_url=out_image_url, summary=summary)
-
-        return render_template('index.html')
+                return render_template(
+                    'prediction.html',
+                    out_image_url=out_image_url, summary=summary,
+                    config=config,
+                )
+        return render_template('index.html', config=config)
 
     return app
 

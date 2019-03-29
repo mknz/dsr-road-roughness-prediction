@@ -1,8 +1,9 @@
 '''Segmentator app server'''
 from functools import wraps
 import io
-import time
 import os
+import re
+import time
 from urllib.parse import quote
 from urllib.parse import urlparse
 from base64 import b64encode
@@ -154,6 +155,22 @@ def is_valid_url(url: str):
     return True
 
 
+def convert_gs_url(url, api_key):
+    '''If given url is a Google Street View URL, convert it into a statc image URL'''
+    match = re.search('https://www.google.*/maps/@([\d|\.]*),([\d|\.]*),3a,([\d|\.]*)y,([\d|\.]*)h,([\d|\.]*)t', url)
+    if not match:
+        return url
+
+    lat = float(match.group(1))
+    lng = float(match.group(2))
+    fov = float(match.group(3))
+    heading = float(match.group(4))
+    pitch = float(match.group(5)) - 90
+
+    converted_url = f'https://maps.googleapis.com/maps/api/streetview?size=640x640&fov={fov}&pitch={pitch}&location={lat},{lng}&heading={heading}&key={api_key}'
+    return converted_url
+
+
 def create_app() -> Flask:
     app = Flask(__name__)
     app.secret_key = os.environ.get('SIDEWALK_APP_SECRET_KEY')
@@ -163,59 +180,71 @@ def create_app() -> Flask:
     @app.route('/', methods=['GET', 'POST'])
     def upload():
         if request.method == 'POST':
-            image_url = request.form.get('image_url')
-            if not is_valid_url(image_url):
-                flash('Invalid url', 'warning')
-                return render_template('index.html', config=config)
+            # check if the post request has the file part
+            if 'image_file' in request.files:
+                file_ = request.files['image_file']
 
-            resp = requests.get(image_url)
-            if resp.status_code != 200:
-                flash('Cannot get image', 'warning')
-                return render_template('index.html', config=config)
+                # if user does not select file, browser also
+                # submit an empty part without filename
+                if file_.filename == '':
+                    flash('No selected file', 'warning')
+                    return render_template('index.html', config=config)
+                else:
+                    if not file_:
+                        flash('Not a image file', 'warning')
+                        return render_template('index.html', config=config)
+                    elif not allowed_file(file_.filename):
+                        flash('Invalid file type', 'warning')
+                        return render_template('index.html', config=config)
+                    else:
+                        img = np.array(Image.open(file_))[:, :, :3]
+            else:
+                image_url = request.form.get('image_url')
 
-            try:
-                with io.BytesIO() as buf:
-                    buf.write(resp.content)
-                    buf.seek(0)
-                    img = np.array(Image.open(buf))[:, :, :3]
-            except:
-                flash('Not an image url', 'warning')
-                return render_template('index.html', config=config)
+                # Basic ur validation
+                if not is_valid_url(image_url):
+                    flash('Invalid url', 'warning')
+                    return render_template('index.html', config=config)
 
+                # Try to convert to static image
+                image_url = convert_gs_url(image_url, config.GOOGLE_MAP_API_KEY)
+                try:
+                    image_url = convert_gs_url(image_url, config.GOOGLE_MAP_API_KEY)
+                except:
+                    flash('Something wrong with the url', 'warning')
+                    return render_template('index.html', config=config)
+
+                # Get image from URL
+                resp = requests.get(image_url)
+                if resp.status_code != 200:
+                    flash('Cannot get image', 'warning')
+                    return render_template('index.html', config=config)
+
+                # Read image as np array
+                try:
+                    with io.BytesIO() as buf:
+                        buf.write(resp.content)
+                        buf.seek(0)
+                        img = np.array(Image.open(buf))[:, :, :3]
+                except:
+                    flash('Not an image url', 'warning')
+                    return render_template('index.html', config=config)
+
+            # Make a prediction
             summary, out_image = predict(img, segmentator)
+
+            # Encode segmented image
             bytes_ = utils.pil_image_to_bytes(out_image, format='JPEG')
             encoded_image = b64encode(bytes_).decode('ascii')
             out_image_url = f'data:image/jpeg;base64,{quote(encoded_image)}'
 
             return render_template(
                 'prediction.html',
-                out_image_url=out_image_url, summary=summary,
+                out_image_url=out_image_url,
+                summary=summary,
                 config=config,
             )
 
-            # check if the post request has the file part
-            if 'image_file' not in request.files:
-                flash('No file part', 'warning')
-                return render_template('index.html', config=config)
-            file_ = request.files['image_file']
-
-            # if user does not select file, browser also
-            # submit an empty part without filename
-            if file_.filename == '':
-                flash('No selected file', 'warning')
-                return render_template('index.html', config=config)
-
-            if file_ and allowed_file(file_.filename):
-                img = np.array(Image.open(file_))[:, :, :3]
-                summary, out_image = predict(img, segmentator)
-                bytes_ = utils.pil_image_to_bytes(out_image, format='JPEG')
-                encoded_image = b64encode(bytes_).decode('ascii')
-                out_image_url = f'data:image/jpeg;base64,{quote(encoded_image)}'
-                return render_template(
-                    'prediction.html',
-                    out_image_url=out_image_url, summary=summary,
-                    config=config,
-                )
         return render_template('index.html', config=config)
 
     return app

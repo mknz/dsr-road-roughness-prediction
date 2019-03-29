@@ -184,20 +184,18 @@ def create_app() -> Flask:
             if 'image_file' in request.files:
                 file_ = request.files['image_file']
 
-                # if user does not select file, browser also
-                # submit an empty part without filename
-                if file_.filename == '':
-                    flash('No selected file', 'warning')
+                if not file_:
+                    flash('Not a image file', 'warning')
+                    return render_template('index.html', config=config)
+                elif not allowed_file(file_.filename):
+                    flash('Invalid file type', 'warning')
                     return render_template('index.html', config=config)
                 else:
-                    if not file_:
-                        flash('Not a image file', 'warning')
-                        return render_template('index.html', config=config)
-                    elif not allowed_file(file_.filename):
-                        flash('Invalid file type', 'warning')
-                        return render_template('index.html', config=config)
-                    else:
+                    try:
                         img = np.array(Image.open(file_))[:, :, :3]
+                    except:
+                        flash('File open error', 'warning')
+                        return render_template('index.html', config=config)
             else:
                 image_url = request.form.get('image_url')
 

@@ -33,14 +33,44 @@
   <div id="street-view"></div>
   <script>
     var panorama;
+    var locations = [
+          {
+            position: {lat: 52.4958002, lng: 13.3311656},
+            pov: {heading: 80.05, pitch: 70.87 - 90},
+            zoom: 2
+          },
+          {
+            position: {lat: 52.488817, lng: 13.3086332},
+            pov: {heading: 340.69 , pitch: 73.75 - 90},
+            zoom: 2
+          },
+          {
+            position: {lat: 52.5012147, lng: 13.3329486},
+            pov: {heading: 26.62 , pitch: 56.15 - 90},
+            zoom: 2
+          },
+          {
+            position: {lat: 52.4852958 , lng: 13.3312737},
+            pov: {heading: 86.01 , pitch: 62.73  - 90},
+            zoom: 2
+          },
+          {
+            position: {lat: 52.4796165 , lng: 13.3348568},
+            pov: {heading: 15.88, pitch: 79.27 - 90},
+            zoom: 2
+          },
+          {
+            position: {lat: 52.4831816 , lng: 13.3461817},
+            pov: {heading: 246.36 , pitch: 77.27 - 90},
+            zoom: 2
+          },
+        ];
+    var idx = Math.floor(Math.random() * locations.length);
     function initialize() {
       panorama = new google.maps.StreetViewPanorama(
-          document.getElementById('street-view'),
-          {
-            position: {lat: 52.5022013, lng: 13.3421314},
-            pov: {heading: 30.49, pitch: 6},
-            zoom: 1
-          });
+        document.getElementById('street-view'), locations[idx]
+      );
+
     }
   </script>
   <script>
@@ -49,10 +79,12 @@
       var lng = panorama.getPosition().lng();
       var heading = panorama.getPov().heading;
       var pitch = panorama.getPov().pitch;
+      var zoom = panorama.getZoom();
+      var fov = 180 / Math.pow(2, zoom);
       var width = 640;
       var height = 640;
       var GOOGLE_MAP_API_KEY = "{{ config.GOOGLE_MAP_API_KEY }}";
-      var url = `https://maps.googleapis.com/maps/api/streetview?size=${width}x${height}&location=${lat},${lng}&heading=${heading}&pitch=${pitch}&key=${GOOGLE_MAP_API_KEY}`;
+      var url = `https://maps.googleapis.com/maps/api/streetview?size=${width}x${height}&fov=${fov}&location=${lat},${lng}&heading=${heading}&pitch=${pitch}&key=${GOOGLE_MAP_API_KEY}`;
       document.getElementById('image-url').value = url;
       document.getElementById('predict-btn').click();
 

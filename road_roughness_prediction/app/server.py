@@ -182,35 +182,35 @@ class ImageFileGetError(Exception):
 def _get_uploaded_image_file(request):
     file_ = request.files.get('image_file')
     if not file_:
-        raise UploadFileGetError
+        raise UploadFileGetError('No file part')
     if not allowed_file(file_.filename):
-        raise UploadFileGetError
+        raise UploadFileGetError('Not an allowed file')
     try:
         img = np.array(Image.open(file_))[:, :, :3]
     except:
-        raise UploadFileGetError
+        raise UploadFileGetError('Could not open uploaded file')
 
     return img
 
 def _get_image_file_from_url(request, config):
     image_url = request.form.get('image_url')
     if not image_url:
-        raise ImageFileGetError
+        raise ImageFileGetError('No image url in request')
 
     # Basic ur validation
     if not is_valid_url(image_url):
-        raise ImageFileGetError
+        raise ImageFileGetError('Invailid URL')
 
     # Try to convert to static image
     try:
         image_url = convert_gs_url(image_url, config.GOOGLE_MAP_API_KEY)
     except:
-        raise ImageFileGetError
+        raise ImageFileGetError('Something wrong with the URL')
 
     # Get image from URL
     resp = requests.get(image_url)
     if resp.status_code != 200:
-        raise ImageFileGetError
+        raise ImageFileGetError('Invalid respose code')
 
     # Read image as np array
     try:
@@ -219,7 +219,7 @@ def _get_image_file_from_url(request, config):
             buf.seek(0)
             img = np.array(Image.open(buf))[:, :, :3]
     except:
-        raise ImageFileGetError
+        raise ImageFileGetError('File open error')
 
     return img
 
@@ -238,8 +238,9 @@ def create_app() -> Flask:
             except UploadFileGetError:
                 try:
                     img = _get_image_file_from_url(request, config)
-                except ImageFileGetError:
-                    flash('Invalid image file', 'warning')
+                except ImageFileGetError as error:
+                    #flash(str(error), 'warning')
+                    flash('Could not get image', 'warning')
                     return render_template('index.html', config=config)
 
             # Make a prediction

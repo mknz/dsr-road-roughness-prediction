@@ -171,6 +171,59 @@ def convert_gs_url(url, api_key):
     return converted_url
 
 
+class UploadFileGetError(Exception):
+    pass
+
+
+class ImageFileGetError(Exception):
+    pass
+
+
+def _get_uploaded_image_file(request):
+    file_ = request.files.get('image_file')
+    if not file_:
+        raise UploadFileGetError
+    if not allowed_file(file_.filename):
+        raise UploadFileGetError
+    try:
+        img = np.array(Image.open(file_))[:, :, :3]
+    except:
+        raise UploadFileGetError
+
+    return img
+
+def _get_image_file_from_url(request, config):
+    image_url = request.form.get('image_url')
+    if not image_url:
+        raise ImageFileGetError
+
+    # Basic ur validation
+    if not is_valid_url(image_url):
+        raise ImageFileGetError
+
+    # Try to convert to static image
+    try:
+        image_url = convert_gs_url(image_url, config.GOOGLE_MAP_API_KEY)
+    except:
+        raise ImageFileGetError
+
+    # Get image from URL
+    resp = requests.get(image_url)
+    if resp.status_code != 200:
+        raise ImageFileGetError
+
+    # Read image as np array
+    try:
+        with io.BytesIO() as buf:
+            buf.write(resp.content)
+            buf.seek(0)
+            img = np.array(Image.open(buf))[:, :, :3]
+    except:
+        raise ImageFileGetError
+
+    return img
+
+
 def create_app() -> Flask:
     app = Flask(__name__)
     app.secret_key = os.environ.get('SIDEWALK_APP_SECRET_KEY')
@@ -180,52 +233,13 @@ def create_app() -> Flask:
     @app.route('/', methods=['GET', 'POST'])
     def upload():
         if request.method == 'POST':
-            # check if the post request has the file part
-            if 'image_file' in request.files:
-                file_ = request.files['image_file']
-
-                if not file_:
-                    flash('Not a image file', 'warning')
-                    return render_template('index.html', config=config)
-                elif not allowed_file(file_.filename):
-                    flash('Invalid file type', 'warning')
-                    return render_template('index.html', config=config)
-                else:
-                    try:
-                        img = np.array(Image.open(file_))[:, :, :3]
-                    except:
-                        flash('File open error', 'warning')
-                        return render_template('index.html', config=config)
-            else:
-                image_url = request.form.get('image_url')
-
-                # Basic ur validation
-                if not is_valid_url(image_url):
-                    flash('Invalid url', 'warning')
-                    return render_template('index.html', config=config)
-
-                # Try to convert to static image
-                image_url = convert_gs_url(image_url, config.GOOGLE_MAP_API_KEY)
+            try:
+                img = _get_uploaded_image_file(request)
+            except UploadFileGetError:
                 try:
-                    image_url = convert_gs_url(image_url, config.GOOGLE_MAP_API_KEY)
-                except:
-                    flash('Something wrong with the url', 'warning')
-                    return render_template('index.html', config=config)
-
-                # Get image from URL
-                resp = requests.get(image_url)
-                if resp.status_code != 200:
-                    flash('Cannot get image', 'warning')
-                    return render_template('index.html', config=config)
-
-                # Read image as np array
-                try:
-                    with io.BytesIO() as buf:
-                        buf.write(resp.content)
-                        buf.seek(0)
-                        img = np.array(Image.open(buf))[:, :, :3]
-                except:
-                    flash('Not an image url', 'warning')
+                    img = _get_image_file_from_url(request, config)
+                except ImageFileGetError:
+                    flash('Invalid image file', 'warning')
                     return render_template('index.html', config=config)
 
             # Make a prediction

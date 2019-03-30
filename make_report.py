@@ -112,6 +112,10 @@ def main():
 
     cm_crunch = _crunch_background(confusion_matrix)
     classes = ['Background', 'Flat Stones', 'Pavement Stones', 'Sett', 'Bicycle Titles']
+    for i, class_ in enumerate(classes):
+        print(f'{class_}')
+        metrics = calc_metrics(cm_crunch, i)
+        _print_summary(metrics)
 
     fig = cm.plot_confusion_matrix(cm_crunch, classes, normalize=True)
     fig.savefig('cm_norm.png')

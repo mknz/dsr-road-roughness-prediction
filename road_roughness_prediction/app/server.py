@@ -126,9 +126,8 @@ def postprocessing(inputs, segmented, sidewalk_mask, background_mask):
 
     blend_output_img = _blend_image(input_img, out_seg_index_img)
 
-    img_ = (sidewalk_mask[0, ::] * 255).astype(np.uint8)
-    img_ = Image.fromarray(img_)
-    img_ = _blend_image(input_img, img_)
+    legend = Image.open('./road_roughness_prediction/app/static/legend.png')
+    blend_output_img.paste(legend, (10, 10))
 
     return blend_output_img
 

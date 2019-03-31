@@ -64,9 +64,23 @@ class SimpleCategory(SurfaceCategoryBase):
 
 
 # 0. to 1.
+
+'''
 _cm_index = np.linspace(0, 255, 8).astype(np.uint8)
 COLOR_MAP = np.array(cm.jet(_cm_index)[:, :3])
 COLOR_MAP[0, :] = 0., 0., 0.
+'''
+
+COLOR_MAP = np.array([
+    [0, 0, 0],
+    [0.5, 0, 0],
+    [0, 0.5, 0],
+    [0.5, 0, 0.5],
+    [0, 1, 0],
+    [0., 0.75, 1],
+    [1, 0., 0.],
+    [1, 1, 0],
+])
 
 # 0 to 255
 COLOR_PALETTE = [0 for _ in range(768)]

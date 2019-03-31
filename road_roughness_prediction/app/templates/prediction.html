@@ -1,0 +1,20 @@
+{% extends 'layout.html' %}
+{% block content %}
+<img class="img-fluid" style="width: 100%" alt="Prediction" src="{{out_image_url}}"\>
+<table class="table table-striped mt-3">
+  <thead class="thead-light">
+    <tr>
+      <th>Category</th>
+      <th>Percent</th>
+    <tr>
+  </thead>
+  <tbody>
+    {% for row in summary %}
+    <tr>
+      <th>{{ row.name }}</th>
+      <th class="text-right">{{ '%6.2f' | format(row.percent) }} %</th>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,152 @@
+{% extends 'layout.html' %}
+{% block content %}
+    <div class="font-weight-light mt-4">
+      <p>Sidewalk surface type is critical for navigating pedestrians.
+      Especially for wheelchair users, bicycle riders or skaters, surface
+      type dramatically affects the comfortability in the mobility. A large
+      number of street images are available on the web, but for the
+      sidewalk, they typically lack surface labels such as smooth pavement
+      or rough cobblestones. Detecting sidewalk area in complex street
+      images is another challenge.</p>
+
+      <p>Here we propose a system that detects sidewalk and classifies surface
+      type from street view images. We built a two-stage classifier that
+      first identifies sidewalk area, and then categorizes within sidewalk
+      region.</p>
+
+      <p>Our system can tell users characteristics of sidewalk in specified
+      points in the streets. Another application is to use it to annotate
+      sidewalk surface types in crowdsourcing street maps like
+      OpenStreetMap. In the future, we can increase the number of categories
+      in the prediction and also assign them actual roughness values,
+      possibly by combining accelerometer data.</p>
+    </div>
+
+    <div id="myCarousel" class="carousel slide" data-ride="carousel">
+      <!-- Indicators -->
+      <ol class="carousel-indicators">
+        <li data-target="#myCarousel" data-slide-to="0" class="active"></li>
+        <li data-target="#myCarousel" data-slide-to="1"></li>
+        <li data-target="#myCarousel" data-slide-to="2"></li>
+        <li data-target="#myCarousel" data-slide-to="3"></li>
+        <li data-target="#myCarousel" data-slide-to="4"></li>
+        <li data-target="#myCarousel" data-slide-to="5"></li>
+        <li data-target="#myCarousel" data-slide-to="6"></li>
+        <li data-target="#myCarousel" data-slide-to="7"></li>
+        <li data-target="#myCarousel" data-slide-to="8"></li>
+      </ol>
+
+      <!-- Wrapper for slides -->
+      <div class="carousel-inner mb-3">
+        <div class="carousel-item active">
+          <img class="d-block w-100" src="{{ url_for('static', filename='segmentation/00004.jpg') }}" alt="00004">
+        </div>
+        <div class="carousel-item">
+          <img class="d-block w-100" src="{{ url_for('static', filename='segmentation/00007.jpg') }}" alt="00007">
+        </div>
+        <div class="carousel-item">
+          <img class="d-block w-100" src="{{ url_for('static', filename='segmentation/00009.jpg') }}" alt="00009">
+        </div>
+        <div class="carousel-item">
+          <img class="d-block w-100" src="{{ url_for('static', filename='segmentation/00012.jpg') }}" alt="00012">
+        </div>
+        <div class="carousel-item">
+          <img class="d-block w-100" src="{{ url_for('static', filename='segmentation/00013.jpg') }}" alt="00013">
+        </div>
+        <div class="carousel-item">
+          <img class="d-block w-100" src="{{ url_for('static', filename='segmentation/00019.jpg') }}" alt="00019">
+        </div>
+        <div class="carousel-item">
+          <img class="d-block w-100" src="{{ url_for('static', filename='segmentation/00020.jpg') }}" alt="00020">
+        </div>
+        <div class="carousel-item">
+          <img class="d-block w-100" src="{{ url_for('static', filename='segmentation/00023.jpg') }}" alt="00023">
+        </div>
+        <div class="carousel-item">
+          <img class="d-block w-100" src="{{ url_for('static', filename='segmentation/00026.jpg') }}" alt="00026">
+        </div>
+      </div>
+
+      <!-- Left and right controls -->
+      <a class="carousel-control-prev" href="#myCarousel" role="button" data-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="sr-only">Previous</span>
+      </a>
+      <a class="carousel-control-next" href="#myCarousel" role="button" data-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="sr-only">Next</span>
+      </a>
+    </div>
+
+    <h4>Upload a sidewalk image</h4>
+    <form method=post enctype=multipart/form-data>
+      <div class="mb-3"><input type=file name=image_file class="form-control-file border"></div>
+      <div class="mb-3"><input id="image-url" type=text name=image_url placeholder="Paste image url here" class="form-control"></div>
+      <div class="mb-3"><input id="predict-btn" type=submit class="btn btn-outline-primary btn-lg" value=Predict onclick="$('#loading').show();"></div>
+      <div id="loading" style="display:none;"><img src="{{ url_for('static', filename='loading1.gif') }}" alt="" />&nbsp; Making a prediction...</div>
+    </form>
+
+  <input type=submit id="street-view-static-image-btn" class="btn btn-outline-primary mt-1 mb-2" value="Predict this view" onclick="predict_street_view();">
+  <div id="street-view"></div>
+  <script>
+    var panorama;
+    var locations = [
+          {
+            position: {lat: 52.4958002, lng: 13.3311656},
+            pov: {heading: 80.05, pitch: 70.87 - 90},
+            zoom: 2
+          },
+          {
+            position: {lat: 52.488817, lng: 13.3086332},
+            pov: {heading: 340.69 , pitch: 73.75 - 90},
+            zoom: 2
+          },
+          {
+            position: {lat: 52.5012147, lng: 13.3329486},
+            pov: {heading: 26.62 , pitch: 56.15 - 90},
+            zoom: 2
+          },
+          {
+            position: {lat: 52.4852958 , lng: 13.3312737},
+            pov: {heading: 86.01 , pitch: 62.73  - 90},
+            zoom: 2
+          },
+          {
+            position: {lat: 52.4796165 , lng: 13.3348568},
+            pov: {heading: 15.88, pitch: 79.27 - 90},
+            zoom: 2
+          },
+          {
+            position: {lat: 52.4831816 , lng: 13.3461817},
+            pov: {heading: 246.36 , pitch: 77.27 - 90},
+            zoom: 2
+          },
+        ];
+
+    var idx = Math.floor(Math.random() * locations.length);
+    function initialize() {
+      panorama = new google.maps.StreetViewPanorama(
+        document.getElementById('street-view'), locations[idx]
+      );
+    }
+  </script>
+  <script>
+    function predict_street_view() {
+      var lat = panorama.getPosition().lat();
+      var lng = panorama.getPosition().lng();
+      var heading = panorama.getPov().heading;
+      var pitch = panorama.getPov().pitch;
+      var zoom = panorama.getZoom();
+      var fov = 180 / Math.pow(2, zoom);
+      var width = 640;
+      var height = 640;
+      var GOOGLE_MAP_API_KEY = "{{ config.GOOGLE_MAP_API_KEY }}";
+      var url = `https://maps.googleapis.com/maps/api/streetview?size=${width}x${height}&fov=${fov}&location=${lat},${lng}&heading=${heading}&pitch=${pitch}&key=${GOOGLE_MAP_API_KEY}`;
+      document.getElementById('image-url').value = url;
+      document.getElementById('predict-btn').click();
+    }
+  </script>
+  <script async defer
+          src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAP_API_KEY }}&callback=initialize">
+  </script>
+{% endblock %}

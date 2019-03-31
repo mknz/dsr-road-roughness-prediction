@@ -18,6 +18,7 @@ from albumentations import RandomCrop
 from albumentations import CenterCrop
 from albumentations import HorizontalFlip
 from albumentations import RandomCrop
+from albumentations import RandomScale
 from albumentations import RandomGamma
 from albumentations import Rotate
 from albumentations import RandomSizedCrop
@@ -133,7 +134,8 @@ def main():
     ])
     '''
     # Transforms
-    train_transform = Compose([
+    transforms = {}
+    transforms['base'] = Compose([
         HorizontalFlip(p=0.5),
         #IAAPerspective(scale=(0.05, 0.1), p=0.3),
         Rotate(5, p=0.5),
@@ -149,6 +151,25 @@ def main():
             RandomSizedCrop((int(h * rate), int(w * rate)), h, w, p=1.0),
             RandomCrop(h, w, p=1.0),
         ], p=1.0)
+    ])
+
+    # BDD dataset
+    transforms['bdd'] = transforms['base']
+
+    # Always shrink to 22% - 50%
+    transforms['walk'] = Compose([
+        HorizontalFlip(p=0.5),
+        Rotate(5, p=0.5),
+        RandomGamma(p=0.5),
+        HueSaturationValue(
+            hue_shift_limit=10,
+            sat_shift_limit=15,
+            val_shift_limit=10,
+            p=0.5
+        ),
+        RandomBrightnessContrast(p=0.5),
+        RandomScale((-0.78, -0.5), p=1.0),
+        RandomCrop(h, w, p=1.0),
     ])
 
     validation_transform = Compose([
@@ -169,7 +190,7 @@ def main():
             [image_dir],
             [mask_dir],
             category_type,
-            train_transform,
+            transforms[dataset_type],
         )
         train_datasets.append(_dataset)
 

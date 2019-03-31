@@ -130,12 +130,12 @@ def postprocessing(inputs, segmented, sidewalk_mask, background_mask):
     out_seg_img = segmented[0, ::]
     out_seg_index_img = utils.create_index_image(out_seg_img)
 
-    blend_output_img = _blend_image(input_img, out_seg_index_img)
+    blend_output_img = _blend_image(input_img, out_seg_index_img).convert('RGBA')
 
-    legend = Image.open('./road_roughness_prediction/app/static/legend.png')
+    legend = Image.open('./road_roughness_prediction/app/static/legend_subset.png')
     blend_output_img.paste(legend, (10, 10))
 
-    return blend_output_img
+    return blend_output_img.convert('RGB')
 
 
 def is_valid_url(url: str):

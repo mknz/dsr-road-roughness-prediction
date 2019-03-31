@@ -99,17 +99,23 @@ def predict(image, segmentator):
                 return count
         return 0
 
-    results = []
+    out_image = postprocessing(images, segmented, sidewalk_mask, background_mask)
+
+    summary = []
     for category in surface_types.SimpleCategory:
+        result = {}
+
         name = category.name
+        result['name'] = name
+
         index = category.value
         count = _get_count(index)
-        percent = 100 * count / n_total
-        results.append(f'{name:20s} {count:09d} {percent:6.2f}%')
+        result['count'] = count
 
-    summary = '\n'.join(results)
+        result['percent'] = 100 * count / n_total
+        summary.append(result)
 
-    out_image = postprocessing(images, segmented, sidewalk_mask, background_mask)
+    summary.sort(key=lambda x: x['percent'], reverse=True)
     return summary, out_image
 
 

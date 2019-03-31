@@ -65,12 +65,12 @@
             zoom: 2
           },
         ];
+
     var idx = Math.floor(Math.random() * locations.length);
     function initialize() {
       panorama = new google.maps.StreetViewPanorama(
         document.getElementById('street-view'), locations[idx]
       );
-
     }
   </script>
   <script>
@@ -87,7 +87,6 @@
       var url = `https://maps.googleapis.com/maps/api/streetview?size=${width}x${height}&fov=${fov}&location=${lat},${lng}&heading=${heading}&pitch=${pitch}&key=${GOOGLE_MAP_API_KEY}`;
       document.getElementById('image-url').value = url;
       document.getElementById('predict-btn').click();
-
     }
   </script>
   <script async defer

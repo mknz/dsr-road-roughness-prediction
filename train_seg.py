@@ -175,7 +175,7 @@ def main():
         RandomCrop(h, w, p=1.0),
     ])
 
-    # Basic transform
+    # MISC dataset transform
     transforms['misc'] = Compose([
         HorizontalFlip(p=0.5),
         Rotate(5, p=0.5),

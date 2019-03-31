@@ -6,7 +6,7 @@ from ._bdd import BddDatasetFactory
 
 def create_dataset(dataset_type:str, image_dirs, mask_dirs, category_type, transform):
 
-    if dataset_type in ['base', 'walk']:
+    if dataset_type in ['base', 'walk', 'misc']:
         dataset = SidewalkSegmentationDatasetFactory(
             image_dirs,
             mask_dirs,

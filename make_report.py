@@ -119,6 +119,7 @@ def main():
 
     fig = cm.plot_confusion_matrix(cm_crunch, classes, normalize=True)
     fig.savefig('cm_norm.png')
+
     fig = cm.plot_confusion_matrix(cm_crunch, classes, normalize=False)
     fig.savefig('cm.png')
 

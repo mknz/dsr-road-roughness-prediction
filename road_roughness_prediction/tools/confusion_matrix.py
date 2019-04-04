@@ -5,11 +5,11 @@ from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
-
 from sklearn.metrics import confusion_matrix
 
 from ..tools.image_utils import fig_to_pil
 
+plt.rcParams.update({'font.size': 18})
 
 def plot_confusion_matrix(cm, classes,
                           normalize=False,
@@ -33,7 +33,7 @@ def plot_confusion_matrix(cm, classes,
     plt.title(title)
     plt.colorbar()
     tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
+    plt.xticks(tick_marks, classes, rotation=30)
     plt.yticks(tick_marks, classes)
 
     fmt = '.2f' if normalize else 'd'

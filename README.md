@@ -10,18 +10,18 @@
 
 ## About
 
-This is the repository of our portfolio project in [DSR](https://www.datascienceretreat.com/). In this project, we built a classifier that can predict surface category of sidewalks in Berlin from street view images. We built this as a basis for routing application that tell users the road condition.
+This is the repository of our portfolio project in [DSR](https://www.datascienceretreat.com/). In this project, we built a classifier that can predict the surface category of sidewalks in Berlin from street view images. We built this as a basis for routing application that tells users the road condition.
 
-Contributors:
+### Contributors
 
-[Masanori Kanazu](https://github.com/mknz)
-[Dmitry Yefimenko](https://github.com/Dyefimenko)
+- [Masanori Kanazu](https://github.com/mknz)
+- [Dmitry Yefimenko](https://github.com/Dyefimenko)
 
 ## Models
 
-The basis models is [U-Net with VGG11 encoder pretrained with ImageNet](https://github.com/ternaus/TernausNet).
+The basis model is [U-Net with VGG11 encoder pretrained with ImageNet](https://github.com/ternaus/TernausNet).
 
-We trained two models, one is binary sidewalk detector and the other is multiple surface category classifier. The two output was combined to make a final prediction.
+We trained two models, one is a sidewalk detector and the other is a surface category classifier. The two output was combined to make a final prediction.
 
 ## Data
 
@@ -63,7 +63,7 @@ pip3 install -r requirements.txt
 ./predict.sh ./tests/resources/segmentation/labelme/JPEGImages/zyZ1BD8DoUJ2.jpg
 ```
 
-This outputs results to  `./out`
+This outputs segmented images to  `./out`
 
 ### Train model
 

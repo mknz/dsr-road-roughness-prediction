@@ -64,7 +64,7 @@ pip3 install -r requirements.txt
 #### Download trained weights
 
 ```
-./donwload_weights.sh
+./download_weights.sh
 ```
 
 #### Run a prediction

@@ -66,7 +66,7 @@ def train(net, loader, epoch, optimizer, criterion, device, logger):
 
     # Save model
     model_name = str(net).split('(')[0].lower()
-    save_path = Path(logger.writer.log_dir) / f'{model_name}_dict_epoch_{epoch:03d}.pth'
+    save_path = Path(logger.writer.logdir) / f'{model_name}_dict_epoch_{epoch:03d}.pth'
     torch.save(net.state_dict(), str(save_path))
 
 

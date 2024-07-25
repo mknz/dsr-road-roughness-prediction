@@ -8,7 +8,7 @@ tensorflow
 tensorboardX
 toml
 tqdm==4.19.9
-torch==1.0.1
+torch==2.2.0
 torchvision==0.2.2
 scikit-learn
 pandas
